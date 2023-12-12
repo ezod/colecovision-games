@@ -7,7 +7,7 @@ all: $(BUILDDIR)/$(PROJECT).rom
 $(BUILDDIR):
 	mkdir -p $@
 
-$(BUILDDIR)/$(PROJECT).rom: src/$(PROJECT).asm | $(BUILDDIR)
+$(BUILDDIR)/$(PROJECT).rom: src/$(PROJECT).asm ../../include/coleco.asm ../../include/library.asm | $(BUILDDIR)
 	$(ASM) -Q $< $@
 
 $(BUILDDIR)/$(PROJECT).pkg: $(BUILDDIR)/$(PROJECT).rom
