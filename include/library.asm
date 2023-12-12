@@ -1,0 +1,4 @@
+; ColecoVision Library
+
+NMI:
+	nop
