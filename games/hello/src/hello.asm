@@ -9,9 +9,6 @@
 	dw 0000				; pointer to controller input areas
 	dw START			; entry point
 
-	;dw 0,0,0,0,0,0,0,0,0,0,0
-	;retn
-
 rst_8:
 	reti
 	nop
@@ -37,7 +34,7 @@ rst_38:
 	db "HELLO WORLD!/ /2023"
 
 START:
-	jp BOOT_UP ; soft reset
+	jp BOOT_UP
 
 	include "../../../include/library.asm"
 
