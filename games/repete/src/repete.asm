@@ -83,6 +83,10 @@ MAIN_SCREEN:
 	; clear the screen
 	;call CLEARPAT
 
+	; initialize RAM
+	ld A,0
+	ld (PSTATE),A
+
 	; load the character set
 	call LOAD_CHR_SET
 
@@ -92,6 +96,11 @@ MAIN_SCREEN:
 	ld BC,24*32
 	call LDIRVM
 
+	ld HL,VDU_WRITES
+	call SET_VDU_HOOK
+	call ENABLE_NMI
+
+
 MLOOP:
 	; check that a base tick has occurred
 	; ensures consistent movement speed between 50 & 60 hz systems
@@ -99,17 +108,71 @@ MLOOP:
 	call TEST_SIGNAL
 	or A
 	jr Z,MLOOP
-
+	call PLAYER_TURN
 	jr MLOOP
 
+PLAYER_TURN:
+	call JOYDIR
+	ld HL,PSTATE
+	cp (HL)
+	ret Z
+	ld (PSTATE),A
+	call UPDATE_PSTATE
+	ret
+
+UPDATE_PSTATE:
+	ld A,(PSTATE)
+	bit 0,A
+	jr Z,NUP
+	; up / green
+	ld DE,TILESET_COL_G
+	call LOAD_COL
+	ret
+NUP:
+	bit 1,A
+	jr Z,NRIGHT
+	; right / red
+	ld DE,TILESET_COL_R
+	call LOAD_COL
+	ret
+NRIGHT:
+	bit 2,A
+	jr Z,NDOWN
+	; down / blue
+	ld DE,TILESET_COL_B
+	call LOAD_COL
+	ret
+NDOWN:
+	bit 3,A
+	jr Z,NLEFT
+	; left / yellow
+	ld DE,TILESET_COL_Y
+	call LOAD_COL
+	ret
+NLEFT:
+	; clear
+	ld DE,TILESET_COL_N
+	call LOAD_COL
+	ret
+
 LOAD_CHR_SET:
+	; load patterns
 	ld HL,0
 	ld DE,TILESET_PAT
 	ld BC,TILESET_SIZE*8
 	call LDIRVM
+	; load white color
 	ld HL,VRAM_COLOR
-	ld DE,TILESET_COL
-	ld BC,32
+	ld A,$f0
+	ld BC,10
+	call FILVRM
+	ld DE,TILESET_COL_N
+	call LOAD_COL
+	ret
+
+LOAD_COL:
+	ld HL,VRAM_COLOR+10
+	ld BC,22
 	call LDIRVM
 	ret
 
@@ -379,11 +442,35 @@ TILESET_PAT:
 	db 255,255,255,252,192,000,000,000 ; 187
 	db 255,248,192,000,000,000,000,000 ; 188
 
-TILESET_COL:
-	db $f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0
-	db $f0,$f0,$c0,$c0,$c0,$c0,$c0,$c0
-	db $a0,$a0,$a0,$a0,$a0,$60,$60,$60
-	db $60,$60,$40,$40,$40,$40,$40,$40
+TILESET_COL_N:
+	db $c0,$c0,$c0,$c0,$c0,$c0
+	db $a0,$a0,$a0,$a0,$a0
+	db $60,$60,$60,$60,$60
+	db $40,$40,$40,$40,$40,$40
+
+TILESET_COL_G:
+	db $30,$30,$30,$30,$30,$30
+	db $a0,$a0,$a0,$a0,$a0
+	db $60,$60,$60,$60,$60
+	db $40,$40,$40,$40,$40,$40
+
+TILESET_COL_Y:
+	db $c0,$c0,$c0,$c0,$c0,$c0
+	db $b0,$b0,$b0,$b0,$b0
+	db $60,$60,$60,$60,$60
+	db $40,$40,$40,$40,$40,$40
+
+TILESET_COL_R:
+	db $c0,$c0,$c0,$c0,$c0,$c0
+	db $a0,$a0,$a0,$a0,$a0
+	db $90,$90,$90,$90,$90
+	db $40,$40,$40,$40,$40,$40
+
+TILESET_COL_B:
+	db $c0,$c0,$c0,$c0,$c0,$c0
+	db $a0,$a0,$a0,$a0,$a0
+	db $60,$60,$60,$60,$60
+	db $50,$50,$50,$50,$50,$50
 
 SCREEN_LAYOUT:
 	db 001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001,001 ; 000
@@ -428,7 +515,7 @@ END:	equ $
 
 	org RAMSTART
 
-BALL:   ds 2
+PSTATE:   ds 1
 
 SoundDataArea:
 	ds Len_SoundDataArea
