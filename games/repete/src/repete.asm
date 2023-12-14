@@ -110,6 +110,7 @@ MLOOP:
 COMPUTER_TURN:
 	ld A,(CCOUNT)
 	inc A
+	ld (CCOUNT),A
 	; display CCOUNT
 	; TODO: multi-digit, optimize
 	ld HL,VRAM_NAME+15*32+16
@@ -117,7 +118,6 @@ COMPUTER_TURN:
 	call FILVRM
 	; TODO: add one random item to pattern
 	; TODO: play back pattern
-	ld (CCOUNT),A
 	ret
 
 PLAYER_TURN:
@@ -129,6 +129,7 @@ PLAYER_TURN:
 	; change player state
 	ld (PSTATE),A
 	call UPDATE_PSTATE
+	ld A,(PSTATE)
 	or A
 	jr NZ,PLAYER_TURN
 	; released, update count
@@ -137,9 +138,8 @@ PLAYER_TURN:
 	ld (PCOUNT),A
 	; TODO: check input against pattern, reset CCOUNT and end turn if wrong
 	; end turn if pattern complete
-	ld E,A
-	ld A,(CCOUNT)
-	cp E
+	ld HL,CCOUNT
+	cp (HL)
 	jr NZ,PLAYER_TURN
 PLAYER_TURN_END:
 	; reset count and return
