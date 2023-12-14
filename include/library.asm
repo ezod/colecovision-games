@@ -230,6 +230,26 @@ SW2:
 	jr NZ,SW2
 	ret
 
+; Setup Screen 0,0 - Interrupts are disabled
+SETSCREEN0:
+	ld BC,0000h	;Reg 0: Mode 0
+	call WRITE_REGISTER
+	ld BC,0206h        ; Name table 1800h
+	call WRITE_REGISTER
+	ld BC,0380h        ; Colour table 2000h
+	call WRITE_REGISTER
+	ld BC,0400h        ; Pattern table 0000h
+	call WRITE_REGISTER
+	ld BC,0536h        ; Sprite attribute table 1b00h
+	call WRITE_REGISTER
+	ld BC,0607h        ; Sprite pattern table 3800h
+	call WRITE_REGISTER
+	ld BC,0700h        ; Base colours
+	call WRITE_REGISTER
+	ld BC,01c2h	;Reg 1: Mode 0, 16k, no interrupts, 16x16 sprites
+	call WRITE_REGISTER
+	ret
+
 ; Setup Screen 2,2 - Interrupts are disabled
 SETSCREEN2:
 	ld BC,0002h	;Reg 0: Mode 2
