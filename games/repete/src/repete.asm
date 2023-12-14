@@ -83,10 +83,6 @@ MAIN_SCREEN:
 	; clear the screen
 	;call CLEARPAT
 
-	; initialize RAM
-	ld A,0
-	ld (PSTATE),A
-
 	; load the character set
 	call LOAD_CHR_SET
 
@@ -100,7 +96,6 @@ MAIN_SCREEN:
 	call SET_VDU_HOOK
 	call ENABLE_NMI
 
-
 MLOOP:
 	; check that a base tick has occurred
 	; ensures consistent movement speed between 50 & 60 hz systems
@@ -108,16 +103,43 @@ MLOOP:
 	call TEST_SIGNAL
 	or A
 	jr Z,MLOOP
+	call COMPUTER_TURN
 	call PLAYER_TURN
 	jr MLOOP
 
+COMPUTER_TURN:
+	ld A,(CCOUNT)
+	inc A
+	; TODO: add one random item to pattern
+	; TODO: play back pattern
+	ld (CCOUNT),A
+	ret
+
 PLAYER_TURN:
+	; monitor controller
 	call JOYDIR
 	ld HL,PSTATE
 	cp (HL)
-	ret Z
+	jr Z,PLAYER_TURN
+	; change player state
 	ld (PSTATE),A
 	call UPDATE_PSTATE
+	or A
+	jr NZ,PLAYER_TURN
+	; released, update count
+	ld A,(PCOUNT)
+	inc A
+	ld (PCOUNT),A
+	; TODO: check input against pattern, reset CCOUNT and end turn if wrong
+	; end turn if pattern complete
+	ld E,A
+	ld A,(CCOUNT)
+	cp E
+	jr NZ,PLAYER_TURN
+PLAYER_TURN_END:
+	; reset count and return
+	ld A,0
+	ld (PCOUNT),A
 	ret
 
 UPDATE_PSTATE:
@@ -125,28 +147,28 @@ UPDATE_PSTATE:
 	bit 0,A
 	jr Z,NUP
 	; up / green
-	ld DE,TILESET_COL_G
+	ld DE,TILESET_COL_N+(VALUE_G+1)*22
 	call LOAD_COL
 	ret
 NUP:
 	bit 1,A
 	jr Z,NRIGHT
 	; right / red
-	ld DE,TILESET_COL_R
+	ld DE,TILESET_COL_N+(VALUE_R+1)*22
 	call LOAD_COL
 	ret
 NRIGHT:
 	bit 2,A
 	jr Z,NDOWN
 	; down / blue
-	ld DE,TILESET_COL_B
+	ld DE,TILESET_COL_N+(VALUE_B+1)*22
 	call LOAD_COL
 	ret
 NDOWN:
 	bit 3,A
 	jr Z,NLEFT
 	; left / yellow
-	ld DE,TILESET_COL_Y
+	ld DE,TILESET_COL_N+(VALUE_Y+1)*22
 	call LOAD_COL
 	ret
 NLEFT:
@@ -180,6 +202,10 @@ VDU_WRITES:
 	ret
 
 TILESET_SIZE:		equ 253
+VALUE_G:		equ 0
+VALUE_Y:		equ 1
+VALUE_R:		equ 2
+VALUE_B:		equ 3
 
 TILESET_PAT:
 	; background tiles
@@ -515,7 +541,10 @@ END:	equ $
 
 	org RAMSTART
 
-PSTATE:   ds 1
+PSTATE:		ds 1
+PCOUNT:		ds 1
+CCOUNT:		ds 1
+CPATRN:		ds 64
 
 SoundDataArea:
 	ds Len_SoundDataArea
