@@ -135,16 +135,16 @@ COMPUTER_TURN:
 PLAYER_TURN:
 	; monitor controller
 	call JOYDIR
-	ld HL,PSTATE
-	cp (HL)
+	or A
 	jr Z,PLAYER_TURN
 	; change player state
-	ld (PSTATE),A
 	call UPDATE_PSTATE
-	ld A,(PSTATE)
+PLAYER_TURN_AR:
+	call JOYDIR
 	or A
-	jr NZ,PLAYER_TURN
+	jr NZ,PLAYER_TURN_AR
 	; released, update count
+	call UPDATE_PSTATE
 	ld A,(PCOUNT)
 	inc A
 	ld (PCOUNT),A
@@ -160,7 +160,6 @@ PLAYER_TURN_END:
 	ret
 
 UPDATE_PSTATE:
-	ld A,(PSTATE)
 	bit 0,A
 	jr Z,NUP
 	; up / green
@@ -559,7 +558,6 @@ END:	equ $
 
 	org RAMSTART
 
-PSTATE:		ds 1
 PCOUNT:		ds 1
 CCOUNT:		ds 1
 CPATRN:		ds 64
