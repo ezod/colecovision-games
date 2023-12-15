@@ -129,7 +129,9 @@ COMPUTER_TURN:
 	ld BC,1
 	call FILVRM
 	; TODO: add one random item to pattern
+	; TODO: translate pattern into controller input
 	; TODO: play back pattern
+	;call PLAY_PAD
 	ret
 
 PLAYER_TURN:
@@ -138,13 +140,13 @@ PLAYER_TURN:
 	or A
 	jr Z,PLAYER_TURN
 	; change player state
-	call UPDATE_PSTATE
+	call PLAY_PAD
 PLAYER_TURN_AR:
 	call JOYDIR
 	or A
 	jr NZ,PLAYER_TURN_AR
 	; released, update count
-	call UPDATE_PSTATE
+	call PLAY_PAD
 	ld A,(PCOUNT)
 	inc A
 	ld (PCOUNT),A
@@ -159,12 +161,13 @@ PLAYER_TURN_END:
 	ld (PCOUNT),A
 	ret
 
-UPDATE_PSTATE:
+PLAY_PAD:
 	bit 0,A
 	jr Z,NUP
 	; up / green
 	ld DE,TILESET_COL_N+(VALUE_G+1)*22
 	call LOAD_COL
+	; TODO: play low E
 	ret
 NUP:
 	bit 1,A
@@ -172,6 +175,7 @@ NUP:
 	; right / red
 	ld DE,TILESET_COL_N+(VALUE_R+1)*22
 	call LOAD_COL
+	; TODO: play A
 	ret
 NRIGHT:
 	bit 2,A
@@ -179,6 +183,7 @@ NRIGHT:
 	; down / blue
 	ld DE,TILESET_COL_N+(VALUE_B+1)*22
 	call LOAD_COL
+	; TODO: play high E
 	ret
 NDOWN:
 	bit 3,A
@@ -186,6 +191,7 @@ NDOWN:
 	; left / yellow
 	ld DE,TILESET_COL_N+(VALUE_Y+1)*22
 	call LOAD_COL
+	; TODO: play C sharp
 	ret
 NLEFT:
 	; clear
