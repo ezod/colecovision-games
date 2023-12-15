@@ -140,12 +140,14 @@ PLAYER_TURN:
 	or A
 	jr Z,PLAYER_TURN
 	; change player state
+	call JOY2PAD
 	call PLAY_PAD
 PLAYER_TURN_AR:
 	call JOYDIR
 	or A
 	jr NZ,PLAYER_TURN_AR
 	; released, update count
+	call JOY2PAD
 	call PLAY_PAD
 	ld A,(PCOUNT)
 	inc A
@@ -161,42 +163,37 @@ PLAYER_TURN_END:
 	ld (PCOUNT),A
 	ret
 
+JOY2PAD:
+	ld B,VALUE_G
+	bit 0,A ; up / green
+	jr NZ,JOY2PAD_RET
+	ld B,VALUE_R
+	bit 1,A ; right / red
+	jr NZ,JOY2PAD_RET
+	ld B,VALUE_B
+	bit 2,A ; down / blue
+	jr NZ,JOY2PAD_RET
+	ld B,VALUE_Y
+	bit 3,A ; left / yellow
+	jr NZ,JOY2PAD_RET
+	ld B,VALUE_N
+JOY2PAD_RET:
+	ld A,B
+	ret
+
 PLAY_PAD:
-	bit 0,A
-	jr Z,NUP
-	; up / green
-	ld DE,TILESET_COL_N+(VALUE_G+1)*22
+	ld HL,TILESET_COL_N
+	or A
+	jr Z,PLAY_PAD_DO
+	ld B,A
+	ld DE,22
+PLAY_PAD_LOOP:
+	add HL,DE
+	djnz PLAY_PAD_LOOP
+PLAY_PAD_DO:
+	ld DE,HL
 	call LOAD_COL
-	; TODO: play low E
-	ret
-NUP:
-	bit 1,A
-	jr Z,NRIGHT
-	; right / red
-	ld DE,TILESET_COL_N+(VALUE_R+1)*22
-	call LOAD_COL
-	; TODO: play A
-	ret
-NRIGHT:
-	bit 2,A
-	jr Z,NDOWN
-	; down / blue
-	ld DE,TILESET_COL_N+(VALUE_B+1)*22
-	call LOAD_COL
-	; TODO: play high E
-	ret
-NDOWN:
-	bit 3,A
-	jr Z,NLEFT
-	; left / yellow
-	ld DE,TILESET_COL_N+(VALUE_Y+1)*22
-	call LOAD_COL
-	; TODO: play C sharp
-	ret
-NLEFT:
-	; clear
-	ld DE,TILESET_COL_N
-	call LOAD_COL
+	; TODO: play (nothing, low E, A, high E, C sharp)
 	ret
 
 LOAD_CHR_SET:
@@ -224,10 +221,11 @@ VDU_WRITES:
 	ret
 
 TILESET_SIZE:		equ 256
-VALUE_G:		equ 0
-VALUE_R:		equ 1
-VALUE_B:		equ 2
-VALUE_Y:		equ 3
+VALUE_N:		equ 0
+VALUE_G:		equ 1
+VALUE_R:		equ 2
+VALUE_B:		equ 3
+VALUE_Y:		equ 4
 
 TILESET_PAT:
 	; background tiles
