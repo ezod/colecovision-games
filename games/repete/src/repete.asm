@@ -108,12 +108,24 @@ MLOOP:
 	jr MLOOP
 
 COMPUTER_TURN:
+	; increment CCOUNT
 	ld A,(CCOUNT)
 	inc A
 	ld (CCOUNT),A
-	; display CCOUNT
-	; TODO: multi-digit, optimize
+	; display low digit of CCOUNT
+	call BIN2BCD
+	and $0f
 	ld HL,VRAM_NAME+15*32+16
+	ld BC,1
+	call FILVRM
+	; display hight digit of CCOUNT
+	ld A,(CCOUNT)
+	call BIN2BCD
+	srl a
+	srl a
+	srl a
+	srl a
+	ld HL,VRAM_NAME+15*32+15
 	ld BC,1
 	call FILVRM
 	; TODO: add one random item to pattern
@@ -540,6 +552,7 @@ SoundAddrs:
 	dw bounce,SoundDataArea				; 1 ball bounce sound
 	dw 0,0
 
+	include "../../../include/bcd.asm"
 	include "../../../include/library.asm"
 
 END:	equ $
