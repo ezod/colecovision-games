@@ -148,11 +148,12 @@ COMPUTER_TURN:
 	srl a
 	srl a
 	or a
-	jr Z,COMPUTER_TURN_PLAY
+	jr NZ,COMPUTER_TURN_NZ
+	add a,10
+COMPUTER_TURN_NZ:
 	ld HL,VRAM_NAME+15*32+15
 	ld BC,1
 	call FILVRM
-COMPUTER_TURN_PLAY:
 	; initialize playback counter
 	ld A,0
 	ld (RCOUNT),A
