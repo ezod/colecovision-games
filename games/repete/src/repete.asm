@@ -35,7 +35,7 @@ rst_38:
 
 	jp NMI
 
-	db "RE-PETE/ /2023"
+	db "RE-PETE/LOGICK WORKSHOP PRESENTS/2023"
 
 START:
 	; set stack pointer
@@ -70,8 +70,15 @@ MAIN_SCREEN:
 	call JOYTST
 
 	; initial seed random with the time that has passed
-	LD HL,(TIME)
+	ld HL,(TIME)
+	ld HL,$f0f0 ; FIXME: why doesn't TIME work?
 	call SEED_RANDOM
+
+	; initialize counters
+	ld A,0
+	ld (PCOUNT),A
+	ld (CCOUNT),A
+	ld (RCOUNT),A
 
 	; disable interrupts
 	call DISABLE_NMI
@@ -97,12 +104,15 @@ MAIN_SCREEN:
 	call ENABLE_NMI
 
 MLOOP:
-	; check that a base tick has occurred
-	; ensures consistent movement speed between 50 & 60 hz systems
-	ld A,(TickTimer)
+	ld A,(HalfSecTimer)
 	call TEST_SIGNAL
 	or A
 	jr Z,MLOOP
+MLOOP2:
+	ld A,(HalfSecTimer)
+	call TEST_SIGNAL
+	or A
+	jr Z,MLOOP2
 	call COMPUTER_TURN
 	call PLAYER_TURN
 	jr MLOOP
@@ -148,7 +158,7 @@ COMPUTER_TURN_PLAY:
 	ld (RCOUNT),A
 COMPUTER_TURN_PLAY_ON:
 	; delay
-	ld A,(QtrSecTimer)
+	ld A,(HalfSecTimer)
 	call TEST_SIGNAL
 	or A
 	jr Z,COMPUTER_TURN_PLAY_ON
@@ -185,8 +195,25 @@ PLAYER_TURN:
 	call JOYDIR
 	or A
 	jr Z,PLAYER_TURN
-	; joystick direction pressed, play the pad
+	; joystick direction pressed
 	call JOY2PAD
+	; check input against pattern, end turn and reset if wrong
+	ld B,A
+	ld HL,PATTERN
+	ld A,(PCOUNT)
+	ld E,A
+	ld D,0
+	add HL,DE
+	ld A,B
+	cp (HL)
+	jr Z,PLAYER_TURN_RIGHT
+	ld B,5
+	call PLAY_IT
+	ld A,0
+	ld (CCOUNT),A
+	jr PLAYER_TURN_END
+PLAYER_TURN_RIGHT:
+	; play pad if correct
 	call PLAY_PAD
 PLAYER_TURN_AR:
 	call JOYDIR
@@ -199,7 +226,6 @@ PLAYER_TURN_AR:
 	ld A,(PCOUNT)
 	inc A
 	ld (PCOUNT),A
-	; TODO: check input against pattern, reset CCOUNT and end turn if wrong
 	; end turn if pattern complete
 	ld HL,CCOUNT
 	cp (HL)
@@ -617,6 +643,10 @@ yellow:
 	db $80,$fc,$01,$0f
 	db $90
 	dw $0000
+wrong:
+	db $80,$ff,$03,$2f
+	db $90
+	dw $0000
 
 SoundDataCount:		equ 7
 Len_SoundDataArea:	equ 10*SoundDataCount+1 	; 7 data areas
@@ -625,6 +655,7 @@ SoundAddrs:
 	dw red,SoundDataArea+10
 	dw blue,SoundDataArea+20
 	dw yellow,SoundDataArea+30
+	dw wrong,SoundDataArea+40
 	dw 0,0
 
 	include "../../../include/bcd.asm"
