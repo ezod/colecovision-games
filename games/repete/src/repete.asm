@@ -139,16 +139,17 @@ PLAYER_TURN:
 	call JOYDIR
 	or A
 	jr Z,PLAYER_TURN
-	; change player state
+	; joystick direction pressed, play the pad
 	call JOY2PAD
 	call PLAY_PAD
 PLAYER_TURN_AR:
 	call JOYDIR
 	or A
 	jr NZ,PLAYER_TURN_AR
-	; released, update count
+	; joystick released, release the pad
 	call JOY2PAD
 	call PLAY_PAD
+	; update count
 	ld A,(PCOUNT)
 	inc A
 	ld (PCOUNT),A
@@ -183,17 +184,21 @@ JOY2PAD_RET:
 
 PLAY_PAD:
 	ld HL,TILESET_COL_N
+	ld DE,HL
+	; skip straight to load base color map if joystick neutral (no sound)
 	or A
-	jr Z,PLAY_PAD_DO
+	jr Z,LOAD_COL
+	; otherwise, multiply to get the color map address
 	ld B,A
 	push BC
 	ld DE,22
 PLAY_PAD_LOOP:
 	add HL,DE
 	djnz PLAY_PAD_LOOP
-PLAY_PAD_DO:
+	; load the color map for the pad
 	ld DE,HL
 	call LOAD_COL
+	; play the sound for the pad
 	pop BC
 	call PLAY_IT
 	ret
