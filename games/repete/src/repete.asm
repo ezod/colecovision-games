@@ -108,9 +108,21 @@ MLOOP:
 	jr MLOOP
 
 COMPUTER_TURN:
+	; get current pattern address
+	ld HL,PATTERN
+	ld A,(CCOUNT)
+	ld E,A
+	ld D,0
+	add HL,DE
+	; generate a random number 1-4 and store in pattern
+	call RND
+	and $03
+	inc A
+	ld (HL),A
 	; increment CCOUNT
 	ld A,(CCOUNT)
 	inc A
+	; TODO: make sure we don't go over 99?
 	ld (CCOUNT),A
 	; display low digit of CCOUNT
 	call BIN2BCD
@@ -125,13 +137,47 @@ COMPUTER_TURN:
 	srl a
 	srl a
 	srl a
+	or a
+	jr Z,COMPUTER_TURN_PLAY
 	ld HL,VRAM_NAME+15*32+15
 	ld BC,1
 	call FILVRM
-	; TODO: add one random item to pattern
-	; TODO: translate pattern into controller input
-	; TODO: play back pattern
-	;call PLAY_PAD
+COMPUTER_TURN_PLAY:
+	; initialize playback counter
+	ld A,0
+	ld (RCOUNT),A
+COMPUTER_TURN_PLAY_ON:
+	; delay
+	ld A,(QtrSecTimer)
+	call TEST_SIGNAL
+	or A
+	jr Z,COMPUTER_TURN_PLAY_ON
+	; get next pattern pad
+	ld HL,PATTERN
+	ld A,(RCOUNT)
+	ld E,A
+	ld D,0
+	add HL,DE
+	ld A,(HL)
+	; play the pad in the pattern
+	call PLAY_PAD
+COMPUTER_TURN_PLAY_OFF:
+	; delay
+	ld A,(HalfSecTimer)
+	call TEST_SIGNAL
+	or A
+	jr Z,COMPUTER_TURN_PLAY_OFF
+	; stop playing pad
+	ld A,VALUE_N
+	call PLAY_PAD
+	; increment playback count
+	ld A,(RCOUNT)
+	inc A
+	ld (RCOUNT),A
+	; check if finished pattern
+	ld HL,CCOUNT
+	cp (HL)
+	jr NZ,COMPUTER_TURN_PLAY_ON
 	ret
 
 PLAYER_TURN:
@@ -590,7 +636,8 @@ END:	equ $
 
 PCOUNT:		ds 1
 CCOUNT:		ds 1
-CPATRN:		ds 64
+RCOUNT:		ds 1
+PATTERN:	ds 99
 
 SoundDataArea:
 	ds Len_SoundDataArea
