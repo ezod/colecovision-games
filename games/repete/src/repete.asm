@@ -186,6 +186,7 @@ PLAY_PAD:
 	or A
 	jr Z,PLAY_PAD_DO
 	ld B,A
+	push BC
 	ld DE,22
 PLAY_PAD_LOOP:
 	add HL,DE
@@ -193,7 +194,8 @@ PLAY_PAD_LOOP:
 PLAY_PAD_DO:
 	ld DE,HL
 	call LOAD_COL
-	; TODO: play (nothing, low E, A, high E, C sharp)
+	pop BC
+	call PLAY_IT
 	ret
 
 LOAD_CHR_SET:
@@ -548,15 +550,30 @@ SCREEN_LAYOUT:
 	db 010,010,010,010,010,010,010,010,010,010,203,204,205,206,207,186,186,208,209,210,211,212,010,010,010,010,010,010,010,010,010,010 ; 022
 	db 010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010 ; 023
 
-bounce:
-	db 081h, 054h, 010h, 002h, 023h, 007h
-	db $90 ; end
+green:
+	db $80,$53,$01,$0f
+	db $90
+	dw $0000
+red:
+	db $80,$93,$01,$0f
+	db $90
+	dw $0000
+blue:
+	db $80,$a7,$02,$0f
+	db $90
+	dw $0000
+yellow:
+	db $80,$fc,$01,$0f
+	db $90
 	dw $0000
 
 SoundDataCount:		equ 7
 Len_SoundDataArea:	equ 10*SoundDataCount+1 	; 7 data areas
 SoundAddrs:
-	dw bounce,SoundDataArea				; 1 ball bounce sound
+	dw green,SoundDataArea
+	dw red,SoundDataArea+10
+	dw blue,SoundDataArea+20
+	dw yellow,SoundDataArea+30
 	dw 0,0
 
 	include "../../../include/bcd.asm"
