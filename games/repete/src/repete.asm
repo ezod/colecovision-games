@@ -211,14 +211,18 @@ PLAYER_TURN:
 	call PLAY_IT
 	ld A,0
 	ld (CCOUNT),A
+PLAYER_TURN_AR1:
+	call JOYDIR
+	or A
+	jr NZ,PLAYER_TURN_AR1
 	jr PLAYER_TURN_END
 PLAYER_TURN_RIGHT:
 	; play pad if correct
 	call PLAY_PAD
-PLAYER_TURN_AR:
+PLAYER_TURN_AR2:
 	call JOYDIR
 	or A
-	jr NZ,PLAYER_TURN_AR
+	jr NZ,PLAYER_TURN_AR2
 	; joystick released, release the pad
 	call JOY2PAD
 	call PLAY_PAD
