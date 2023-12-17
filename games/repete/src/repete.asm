@@ -70,6 +70,7 @@ MAIN_SCREEN:
 	ld (PCOUNT),A
 	ld (CCOUNT),A
 	ld (RCOUNT),A
+	ld (HISCORE),A
 
 	; disable interrupts
 	call DISABLE_NMI
