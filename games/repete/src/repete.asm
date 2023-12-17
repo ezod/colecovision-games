@@ -103,6 +103,8 @@ MAIN_SCREEN:
 	call SET_VDU_HOOK
 	call ENABLE_NMI
 
+	call GAME_START
+
 MLOOP:
 	ld A,(HalfSecTimer)
 	call TEST_SIGNAL
@@ -116,6 +118,17 @@ MLOOP2:
 	call COMPUTER_TURN
 	call PLAYER_TURN
 	jr MLOOP
+
+GAME_START:
+	ld HL,VRAM_NAME+15*32+15
+	ld DE,LAYOUT_ASTERISK
+	ld BC,2
+	call LDIRVM
+AWAIT_START:
+	call JOYPAD
+	cp 10
+	jr NZ,AWAIT_START
+	ret
 
 COMPUTER_TURN:
 	; get current pattern address
@@ -134,26 +147,8 @@ COMPUTER_TURN:
 	inc A
 	; TODO: make sure we don't go over 99?
 	ld (CCOUNT),A
-	; display low digit of CCOUNT
-	call BIN2BCD
-	and $0f
 	ld HL,VRAM_NAME+15*32+16
-	ld BC,1
-	call FILVRM
-	; display hight digit of CCOUNT
-	ld A,(CCOUNT)
-	call BIN2BCD
-	srl a
-	srl a
-	srl a
-	srl a
-	or a
-	jr NZ,COMPUTER_TURN_NZ
-	add a,10
-COMPUTER_TURN_NZ:
-	ld HL,VRAM_NAME+15*32+15
-	ld BC,1
-	call FILVRM
+	call DISPLAY_DIGITS
 	; initialize playback counter
 	ld A,0
 	ld (RCOUNT),A
@@ -210,8 +205,30 @@ PLAYER_TURN:
 	jr Z,PLAYER_TURN_RIGHT
 	ld B,5
 	call PLAY_IT
+	; check current score against high score
+	ld A,(CCOUNT)
+	dec A
+	ld B,A
+	ld A,(HISCORE)
+	cp B
+	jr NC,PLAYER_TURN_HR
+	; save high score
+	ld A,B
+	ld (HISCORE),A
+	; display high score
+	ld HL,VRAM_NAME+8*32+18
+	call DISPLAY_DIGITS
+	ld HL,VRAM_NAME+8*32+13
+	ld DE,LAYOUT_BEST
+	ld BC,4
+	call LDIRVM
+PLAYER_TURN_HR:
+	; reset counters
 	ld A,0
 	ld (CCOUNT),A
+	ld (PCOUNT),A
+	call GAME_START
+	ret
 PLAYER_TURN_AR1:
 	call JOYDIR
 	or A
@@ -239,6 +256,30 @@ PLAYER_TURN_END:
 	; reset count and return
 	ld A,0
 	ld (PCOUNT),A
+	ret
+
+DISPLAY_DIGITS:
+	; display low digit of A
+	call BIN2BCD
+	ld E,A
+	push DE
+	and $0f
+	ld BC,1
+	call FILVRM
+	; display high digit of A
+	pop DE
+	ld A,E
+	srl A
+	srl A
+	srl A
+	srl A
+	or A
+	jr NZ,DISPLAY_DIGITS_HI
+	add A,10
+DISPLAY_DIGITS_HI:
+	dec HL
+	ld BC,1
+	call FILVRM
 	ret
 
 JOY2PAD:
@@ -288,7 +329,7 @@ LOAD_CHR_SET:
 	call LDIRVM
 	; load white color
 	ld HL,VRAM_COLOR
-	ld A,$f0
+	ld A,$f1
 	ld BC,10
 	call FILVRM
 	ld DE,TILESET_COL_N
@@ -344,12 +385,15 @@ TILESET_PAT:
 	db 254,252,000,000,000,000,000,000 ; 027
 	db 003,003,003,003,003,003,001,000 ; 028
 	db 192,192,192,224,255,255,255,255 ; 029
-	db 255,255,255,255,255,255,255,255 ; 030
-	db 255,255,255,255,255,255,255,255 ; 031
-	db 255,255,255,255,255,255,255,255 ; 032
-	db 255,255,255,255,255,255,255,255 ; 033
-	db 255,255,255,255,255,255,255,255 ; 034
-	db 255,255,255,255,255,255,255,255 ; 035
+	; best tiles
+	db 249,205,205,241,205,205,249,000 ; 030
+	db 243,134,134,227,128,128,247,000 ; 031
+	db 223,006,006,134,198,198,134,000 ; 032
+	db 128,000,096,096,000,096,096,000 ; 033
+	; 2-part asterisk
+	db 000,006,003,015,003,006,000,000 ; 034
+	db 000,096,192,240,192,096,000,000 ; 035
+	; spare
 	db 255,255,255,255,255,255,255,255 ; 036
 	db 255,255,255,255,255,255,255,255 ; 037
 	db 255,255,255,255,255,255,255,255 ; 038
@@ -632,6 +676,12 @@ SCREEN_LAYOUT:
 	db 010,010,010,010,010,010,010,010,010,010,203,204,205,206,207,186,186,208,209,210,211,212,010,010,010,010,010,010,010,010,010,010 ; 022
 	db 010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010 ; 023
 
+LAYOUT_BEST:
+	db 030,031,032,033
+
+LAYOUT_ASTERISK:
+	db 034,035
+
 green:
 	db $80,$53,$01,$0f
 	db $90
@@ -673,6 +723,7 @@ END:	equ $
 PCOUNT:		ds 1
 CCOUNT:		ds 1
 RCOUNT:		ds 1
+HISCORE:	ds 1
 PATTERN:	ds 99
 
 SoundDataArea:
