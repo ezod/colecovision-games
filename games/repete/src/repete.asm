@@ -106,15 +106,17 @@ MAIN_SCREEN:
 	call GAME_START
 
 MLOOP:
-	ld A,(HalfSecTimer)
+	; delay
+	ld HL,TIMER_LONG
+	ld A,0
+	call REQUEST_SIGNAL
+	ld (LongTimer),A
+MLOOP_DELAY:
+	ld A,(LongTimer)
 	call TEST_SIGNAL
 	or A
-	jr Z,MLOOP
-MLOOP2:
-	ld A,(HalfSecTimer)
-	call TEST_SIGNAL
-	or A
-	jr Z,MLOOP2
+	jr Z,MLOOP_DELAY
+	call FREE_SIGNAL
 	call COMPUTER_TURN
 	call PLAYER_TURN
 	jr MLOOP
@@ -154,10 +156,16 @@ COMPUTER_TURN:
 	ld (RCOUNT),A
 COMPUTER_TURN_PLAY_ON:
 	; delay
-	ld A,(HalfSecTimer)
+	ld HL,TIMER_PAUSE
+	ld A,0
+	call REQUEST_SIGNAL
+	ld (PauseTimer),A
+COMPUTER_TURN_PLAY_ON_T:
+	ld A,(PauseTimer)
 	call TEST_SIGNAL
 	or A
-	jr Z,COMPUTER_TURN_PLAY_ON
+	jr Z,COMPUTER_TURN_PLAY_ON_T
+	call FREE_SIGNAL
 	; get next pattern pad
 	ld HL,PATTERN
 	ld A,(RCOUNT)
@@ -169,10 +177,8 @@ COMPUTER_TURN_PLAY_ON:
 	call PLAY_PAD
 COMPUTER_TURN_PLAY_OFF:
 	; delay
-	ld A,(HalfSecTimer)
-	call TEST_SIGNAL
-	or A
-	jr Z,COMPUTER_TURN_PLAY_OFF
+	ld A,(CCOUNT)
+	call PATTERN_DELAY
 	; stop playing pad
 	ld A,VALUE_N
 	call PLAY_PAD
@@ -256,6 +262,48 @@ PLAYER_TURN_END:
 	; reset count and return
 	ld A,0
 	ld (PCOUNT),A
+	ret
+
+PATTERN_DELAY:
+	cp 14
+	jr NC,PATTERN_DELAY_SHORT
+	cp 6
+	jr NC,PATTERN_DELAY_MEDIUM
+PATTERN_DELAY_LONG:
+	ld HL,TIMER_LONG
+	ld A,0
+	call REQUEST_SIGNAL
+	ld (LongTimer),A
+PATTERN_DELAY_LONG_T:
+	ld A,(LongTimer)
+	call TEST_SIGNAL
+	or A
+	jr Z,PATTERN_DELAY_LONG_T
+	call FREE_SIGNAL
+	ret
+PATTERN_DELAY_MEDIUM:
+	ld HL,TIMER_MEDIUM
+	ld A,0
+	call REQUEST_SIGNAL
+	ld (MediumTimer),A
+PATTERN_DELAY_MEDIUM_T:
+	ld A,(MediumTimer)
+	call TEST_SIGNAL
+	or A
+	jr Z,PATTERN_DELAY_MEDIUM_T
+	call FREE_SIGNAL
+	ret
+PATTERN_DELAY_SHORT:
+	ld HL,TIMER_SHORT
+	ld A,0
+	call REQUEST_SIGNAL
+	ld (ShortTimer),A
+PATTERN_DELAY_SHORT_T:
+	ld A,(ShortTimer)
+	call TEST_SIGNAL
+	or A
+	jr Z,PATTERN_DELAY_SHORT_T
+	call FREE_SIGNAL
 	ret
 
 DISPLAY_DIGITS:
@@ -345,6 +393,11 @@ LOAD_COL:
 VDU_WRITES:
 	ret
 
+TIMER_LONG:		equ $002c
+TIMER_MEDIUM:		equ $0022
+TIMER_SHORT:		equ $0017
+TIMER_PAUSE:		equ $0006
+
 TILESET_SIZE:		equ 256
 VALUE_N:		equ 0
 VALUE_G:		equ 1
@@ -362,7 +415,7 @@ TILESET_PAT:
 	db 252,192,248,012,012,204,120,000 ; 005 - 5
 	db 056,096,192,248,204,204,120,000 ; 006 - 6
 	db 252,204,012,024,048,048,048,000 ; 007 - 7
-	db 120,204,204,056,204,204,120,000 ; 008 - 8
+	db 120,204,204,120,204,204,120,000 ; 008 - 8
 	db 120,204,204,124,012,024,112,000 ; 009 - 9
 	db 000,000,000,000,000,000,000,000 ; 010
 	; logo text tiles
@@ -720,6 +773,10 @@ END:	equ $
 
 	org RAMSTART
 
+LongTimer:	ds 1
+MediumTimer:	ds 1
+ShortTimer:	ds 1
+PauseTimer:	ds 1
 PCOUNT:		ds 1
 CCOUNT:		ds 1
 RCOUNT:		ds 1
