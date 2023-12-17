@@ -58,21 +58,12 @@ START:
 	ld HL,$9b9b
 	ld (CONTROLLER_BUFFER),HL
 
-	; seed random numbers
-	ld HL,1967
-	call SEED_RANDOM
-
 	; enable timers
 	call CREATE_TIMERS
 
 MAIN_SCREEN:
 	; read joysticks to clear any false reads
 	call JOYTST
-
-	; initial seed random with the time that has passed
-	ld HL,(TIME)
-	ld HL,$f0f0 ; FIXME: why doesn't TIME work?
-	call SEED_RANDOM
 
 	; initialize counters
 	ld A,0
@@ -123,6 +114,9 @@ AWAIT_START:
 	call JOYPAD
 	cp 10
 	jr NZ,AWAIT_START
+	; seed random with the time that has passed
+	ld HL,(TIME)
+	call SEED_RANDOM
 	ret
 
 COMPUTER_TURN:
