@@ -83,13 +83,6 @@ MAIN_SCREEN:
 	; disable interrupts
 	call DISABLE_NMI
 
-	; clean up in case the game left anything on screen
-	;call CLEARSPRITES
-	;call SPRWRT
-
-	; clear the screen
-	;call CLEARPAT
-
 	; load the character set
 	call LOAD_CHR_SET
 
