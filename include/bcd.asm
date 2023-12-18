@@ -1,4 +1,8 @@
-; convert A from binary [0..99] to BCD [00h..99h]
+; BCD Library
+
+; Convert binary to BCD
+; A  -> binary number [0..99]
+; A  <- BCD numer [00h..99h]
 BIN2BCD:
 	push	BC
 	ld	B,10
