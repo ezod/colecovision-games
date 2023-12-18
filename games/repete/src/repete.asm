@@ -130,7 +130,11 @@ COMPUTER_TURN:
 	ld D,0
 	add HL,DE
 	; generate a random number 1-4 and store in pattern
-	call RND
+	push HL
+	call RND_LFSR
+	pop HL
+	ld DE,(TIME)
+	xor E
 	and $03
 	inc A
 	ld (HL),A
@@ -150,6 +154,7 @@ COMPUTER_TURN_PLAY:
 	call REQUEST_SIGNAL
 	ld (PauseTimer),A
 COMPUTER_TURN_PLAY_DELAY:
+	call RND_LFSR
 	ld A,(PauseTimer)
 	call TEST_SIGNAL
 	or A
