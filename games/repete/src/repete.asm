@@ -42,7 +42,7 @@ START:
 	ld SP,StackTop
 
 	; initialize sound
-	ld B,SoundDataCount		; max number of active voices+effects
+	ld B,SoundDataCount
 	ld HL,SoundAddrs
 	call SOUND_INIT
 
@@ -51,7 +51,7 @@ START:
 	ld DE,TIMER_DATA_BLOCK
 	call INIT_TIMER
 
-	; set screen mode 0,0 (16x16 sprites)
+	; set screen mode 0 (aka graphics 1)
 	call SETSCREEN0
 
 	; enable both joysticks, buttons, keypads
@@ -102,8 +102,10 @@ MLOOP_DELAY:
 	or A
 	jr Z,MLOOP_DELAY
 	call FREE_SIGNAL
+
 	call COMPUTER_TURN
 	call PLAYER_TURN
+
 	jr MLOOP
 
 GAME_START:
@@ -135,24 +137,23 @@ COMPUTER_TURN:
 	; increment CCOUNT
 	ld A,(CCOUNT)
 	inc A
-	; TODO: make sure we don't go over 99?
 	ld (CCOUNT),A
 	ld HL,VRAM_NAME+15*32+16
 	call DISPLAY_DIGITS
 	; initialize playback counter
 	ld A,0
 	ld (RCOUNT),A
-COMPUTER_TURN_PLAY_ON:
+COMPUTER_TURN_PLAY:
 	; delay
 	ld HL,TIMER_PAUSE
 	ld A,0
 	call REQUEST_SIGNAL
 	ld (PauseTimer),A
-COMPUTER_TURN_PLAY_ON_T:
+COMPUTER_TURN_PLAY_DELAY:
 	ld A,(PauseTimer)
 	call TEST_SIGNAL
 	or A
-	jr Z,COMPUTER_TURN_PLAY_ON_T
+	jr Z,COMPUTER_TURN_PLAY_DELAY
 	call FREE_SIGNAL
 	; get next pattern pad
 	ld HL,PATTERN
@@ -163,7 +164,6 @@ COMPUTER_TURN_PLAY_ON_T:
 	ld A,(HL)
 	; play the pad in the pattern
 	call PLAY_PAD
-COMPUTER_TURN_PLAY_OFF:
 	; delay
 	ld A,(CCOUNT)
 	call PATTERN_DELAY
@@ -177,7 +177,7 @@ COMPUTER_TURN_PLAY_OFF:
 	; check if finished pattern
 	ld HL,CCOUNT
 	cp (HL)
-	jr NZ,COMPUTER_TURN_PLAY_ON
+	jr NZ,COMPUTER_TURN_PLAY
 	ret
 
 PLAYER_TURN:
