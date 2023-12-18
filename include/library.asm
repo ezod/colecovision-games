@@ -382,6 +382,12 @@ SEED_RANDOM:
 	rr H
 	rl L
 	ld (SEED+2),HL
+	rr H
+	rl L
+	ld (SEED+4),HL
+	rr H
+	rl L
+	ld (SEED+6),HL
 	ret
 
 ; Generate a random number
@@ -415,6 +421,48 @@ RLP2:
 	pop DE
 	pop BC
 	pop HL
+	ret
+
+; Generate a random number (linear feedback shift register)
+; A  <- random number
+RND_LFSR:
+	ld HL,(SEED+4)
+	ld E,(HL)
+	inc HL
+	ld D,(HL)
+	inc HL
+	ld C,(HL)
+	inc HL
+	ld A,(HL)
+	ld B,A
+	rl E
+	rl D
+	rl C
+	rla
+	rl E
+	rl D
+	rl C
+	rla
+	rl E
+	rl D
+	rl C
+	rla
+	ld H,A
+	rl E
+	rl D
+	rl C
+	rla
+	xor B
+	rl E
+	rl D
+	xor H
+	xor C
+	xor D
+	ld HL,SEED+6
+	ld DE,SEED+7
+	ld BC,7
+	lddr
+	ld (DE),A
 	ret
 
 ; NMI routine
@@ -479,7 +527,7 @@ TickTimer:		ds 1 ; Signal that 3 frames has elapsed
 HalfSecTimer:		ds 1 ; Signal that 1/2 second has elapsed
 QtrSecTimer:		ds 1 ; Signal that 1/4 second has elapsed
 TIME:			ds 2
-SEED:			ds 4
+SEED:			ds 8
 CONTROLLER_BUFFER:	ds 12	;Pointer to hand controller input area
 MOVDLY:			ds 10      ; Up to 10 movement timers
 
