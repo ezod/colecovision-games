@@ -1,7 +1,7 @@
 ; ColecoVision Library
 
 ; Set address called inside NMI routine
-; HL = Hook Address
+; HL -> hook address
 SET_VDU_HOOK:
 	ld A,0cdh
 	ld (VDU_HOOK),A
@@ -19,7 +19,7 @@ DNMI1:
 	ld B,1
 	jp 01fd9h
 
-; Enable the generationo of NMI calls
+; Enable the generation of NMI calls
 ENABLE_NMI:
 	ld A,(073c4h)
 	or 020h
@@ -27,7 +27,7 @@ ENABLE_NMI:
 	jp 01fdch
 
 ; Set the name table to default values
-; DE = VRAM Offset
+; DE -> VRAM offset
 SET_DEF_NAME_TBL:
 	ld C,VDP_CTRL_PORT
 	di
@@ -48,8 +48,9 @@ SDNT2:
 	jp NZ,SDNT1
 	ret
 
-; HL = Source data
-; DE = VRam starting location
+; Uncompress RLE data into VRAM
+; HL -> source data
+; DE -> VRAM starting location
 RLE2VRAM:
 	di
 	ld C,VDP_CTRL_PORT
@@ -85,8 +86,8 @@ RLE2V3:
 	jp RLE2V3
 
 ; Uncompress RLE data into RAM
-; HL = Source data
-; DE = Destination
+; HL -> source data
+; DE -> destination
 RLE2RAM:
 RLE2R0:
 	ld A,(HL)
@@ -111,7 +112,9 @@ RLE2R2:
 	ldir
 	jr RLE2R0
 
-; Write to VDP, port in B, value in C
+; Write to VDP
+; B  -> port
+; C  -> value
 WRTVDP:
 	di
 	ld A,B
@@ -129,8 +132,8 @@ WRTVDP:
 	pop HL
 	ret
 
-; Set write to Video Ram
-; HL = VRAM Address
+; Set write to VRAM
+; HL -> VRAM address
 SETWRT:
 	di
 	ld A,L
@@ -141,9 +144,9 @@ SETWRT:
 	out (VDP_CTRL_PORT),A
 	ei
 	ret
-;
-; Set read to Video Ram
-; HL = VRAM Address
+
+; Set read to VRAM
+; HL -> VRAM Address
 SETRD:
 	di
 	ld A,L
@@ -155,9 +158,9 @@ SETRD:
 	ret
 
 ; Load a block of memory to VRAM
-; HL = VRAM Address
-; DE = RAM Address
-; BC = Length
+; HL -> VRAM Address
+; DE -> RAM Address
+; BC -> Length
 LDIRVM:
 	call SETWRT
 LLOOP:
@@ -171,9 +174,10 @@ LLOOP:
 	jr NZ,LLOOP
 	ret
 
-; Fill a section of VRAM with value in A
-; HL = VRAM Address
-; BC = Length
+; Fill a section of VRAM with value
+; HL -> VRAM address
+; BC -> length
+; A  -> value
 FILVRM:
 	ld E,A
 	call SETWRT
@@ -187,7 +191,7 @@ FLOOP:
 	jr NZ,FLOOP
 	ret
 
-; Write Sprite positions to VRAM
+; Write sprite positions to VRAM
 ; - writes sprites in reverse order every 2nd screen refresh
 ; - this allows for eight sprites per line, with flickering
 ; - only when there are five or more sprites on a line
@@ -271,7 +275,7 @@ SETSCREEN2:
 	ret
 
 ; Test for the press of a joystick button (0 or 1)
-; A = 255 - fire button pressed
+; A  <- 255 - fire button pressed
 JOYTST:
 	call POLLER
 	ld A,(CONTROLLER_BUFFER+FIRE1)
@@ -287,20 +291,21 @@ JOYTST2:
 	ret
 
 ; Test for a press of a keypad button
+; A  <-
 JOYPAD:
 	call POLLER
 	ld A,(CONTROLLER_BUFFER+KEYPAD1)
 	ret
-;
+
 ; Test for the direction of joystick 0
-; Result: A
+; A  <-
 JOYDIR:
 	call POLLER
 	ld A,(CONTROLLER_BUFFER+JOY1)
 	ret
-;
+
 ; Play a sound, protects the calling routine from common registers being changed
-; B = Sound to play
+; B  -> sound to play
 SOUND:
 	push IX
 	push IY
@@ -314,7 +319,7 @@ SOUND:
 	ret
 
 ; Output a character to the screen nametable
-; (HL) contains the character to output
+; (HL) -> character to output
 PRINTIT:
 	xor A ; clear A
 	rld   ; rotate left out of (HL) into A
@@ -370,8 +375,8 @@ CREATE_TIMERS:
 	ld (TickTimer),A		;Happens once per tick
 	ret
 
-;   Seed Random numbers
-;   Seed in HL
+; Seed random number generator
+; HL -> seed
 SEED_RANDOM:
 	ld (SEED),HL
 	rr H
@@ -379,8 +384,8 @@ SEED_RANDOM:
 	ld (SEED+2),HL
 	ret
 
-;   Generate a random number, based on the initial Seed
-;   value.
+; Generate a random number
+; A  <- random number
 RND:
 	push HL
 	push BC
@@ -480,12 +485,12 @@ MOVDLY:			ds 10      ; Up to 10 movement timers
 
 	org $7030 ; avoid Coleco BIOS RAM usage area
 
-; Sprite positions
-SPRTBL:			ds 80h
+; sprite positions
+SPRTBL:			ds $80
 SPRORDER:		ds 1 ; flag to indicate the current sprite write direction
 TIMER_TABLE:		ds 16	;Pointer to timers table (16 timers)
 TIMER_DATA_BLOCK:	ds 58	;Pointer to timers table for long timers
                             ;4 bytes * 16 longer than 3 sec timers
-VDU_HOOK: 		ds 4 ; NMI VDU Delayed writes hook
+VDU_HOOK: 		ds 4 ; NMI VDU delayed writes hook
 
-RAMSTART: 		equ $ ; Setup where game specific values can start
+RAMSTART: 		equ $ ; start of game-specific RAM
