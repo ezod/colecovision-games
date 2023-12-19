@@ -66,7 +66,7 @@ MAIN_SCREEN:
 	call JOYTST
 
 	; initialize counters
-	ld A,0
+	xor A
 	ld (PCOUNT),A
 	ld (CCOUNT),A
 	ld (RCOUNT),A
@@ -93,7 +93,7 @@ MAIN_SCREEN:
 MLOOP:
 	; delay
 	ld HL,TIMER_LONG
-	ld A,0
+	xor A
 	call REQUEST_SIGNAL
 	ld (LongTimer),A
 MLOOP_DELAY:
@@ -145,12 +145,12 @@ COMPUTER_TURN:
 	ld HL,VRAM_NAME+15*32+16
 	call DISPLAY_DIGITS
 	; initialize playback counter
-	ld A,0
+	xor A
 	ld (RCOUNT),A
 COMPUTER_TURN_PLAY:
 	; delay
 	ld HL,TIMER_PAUSE
-	ld A,0
+	xor A
 	call REQUEST_SIGNAL
 	ld (PauseTimer),A
 COMPUTER_TURN_PLAY_DELAY:
@@ -223,7 +223,7 @@ PLAYER_TURN:
 	call LDIRVM
 PLAYER_TURN_HR:
 	; reset counters
-	ld A,0
+	xor A
 	ld (CCOUNT),A
 	ld (PCOUNT),A
 	call GAME_START
@@ -253,7 +253,7 @@ PLAYER_TURN_AR2:
 	jr NZ,PLAYER_TURN
 PLAYER_TURN_END:
 	; reset count and return
-	ld A,0
+	xor A
 	ld (PCOUNT),A
 	ret
 
@@ -264,7 +264,7 @@ PATTERN_DELAY:
 	jr NC,PATTERN_DELAY_MEDIUM
 PATTERN_DELAY_LONG:
 	ld HL,TIMER_LONG
-	ld A,0
+	xor A
 	call REQUEST_SIGNAL
 	ld (LongTimer),A
 PATTERN_DELAY_LONG_T:
@@ -276,7 +276,7 @@ PATTERN_DELAY_LONG_T:
 	ret
 PATTERN_DELAY_MEDIUM:
 	ld HL,TIMER_MEDIUM
-	ld A,0
+	xor A
 	call REQUEST_SIGNAL
 	ld (MediumTimer),A
 PATTERN_DELAY_MEDIUM_T:
@@ -288,7 +288,7 @@ PATTERN_DELAY_MEDIUM_T:
 	ret
 PATTERN_DELAY_SHORT:
 	ld HL,TIMER_SHORT
-	ld A,0
+	xor A
 	call REQUEST_SIGNAL
 	ld (ShortTimer),A
 PATTERN_DELAY_SHORT_T:
