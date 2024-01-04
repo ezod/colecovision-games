@@ -3,14 +3,14 @@
 
 	include "../../../include/coleco.asm"
 
-	org $8000
+	org 	$8000
 
-	db $aa,$55			; ColecoVision title screen
-	dw $0000			; pointer to sprite name table
-	dw $0000			; pointer to sprite order table
-	dw $0000			; pointer to working buffer for WR_SPR_NM_TBL
-	dw CONTROLLER_BUFFER		; pointer to controller input areas
-	dw START			; entry point
+	db 	$aa,$55			; ColecoVision title screen
+	dw 	$0000			; pointer to sprite name table
+	dw 	$0000			; pointer to sprite order table
+	dw 	$0000			; pointer to working buffer for WR_SPR_NM_TBL
+	dw 	CONTROLLER_BUFFER	; pointer to controller input areas
+	dw 	START			; entry point
 
 rst_8:
 	reti
@@ -19,7 +19,7 @@ rst_10:
 	reti
 	nop
 rst_18:
-	jp RAND_GEN
+	jp 	RAND_GEN
 rst_20:
 	reti
 	nop
@@ -33,354 +33,355 @@ rst_38:
 	reti
 	nop
 
-	jp NMI
+	jp 	NMI
 
-	db "RE-PETE/LOGICK WORKSHOP PRESENTS/2023"
+	db 	"RE-PETE/OPRETO PRESENTS/2023"
 
 START:
 	; set stack pointer
-	ld SP,StackTop
+	ld 	sp,StackTop
 
 	; initialize sound
-	ld B,SoundDataCount
-	ld HL,SoundAddrs
-	call SOUND_INIT
+	ld 	b,SoundDataCount
+	ld 	hl,SoundAddrs
+	call 	SOUND_INIT
 
 	; initialize clock
-	ld HL,TIMER_TABLE
-	ld DE,TIMER_DATA_BLOCK
-	call INIT_TIMER
+	ld 	hl,TIMER_TABLE
+	ld 	de,TIMER_DATA_BLOCK
+	call 	INIT_TIMER
 
 	; set screen mode 0 (aka graphics 1)
-	call SETSCREEN0
+	call 	SETSCREEN0
 
 	; enable both joysticks, buttons, keypads
-	ld HL,$9b9b
-	ld (CONTROLLER_BUFFER),HL
+	ld 	hl,$9b9b
+	ld 	(CONTROLLER_BUFFER),hl
 
 	; enable timers
-	call CREATE_TIMERS
+	call 	CREATE_TIMERS
 
 MAIN_SCREEN:
 	; read joysticks to clear any false reads
-	call JOYTST
+	call 	JOYTST
 
 	; initialize counters
-	xor A
-	ld (PCOUNT),A
-	ld (CCOUNT),A
-	ld (RCOUNT),A
-	ld (HISCORE),A
+	xor 	a
+	ld 	(PCOUNT),a
+	ld 	(CCOUNT),a
+	ld 	(RCOUNT),a
+	ld 	(HISCORE),a
 
 	; disable interrupts
-	call DISABLE_NMI
+	call 	DISABLE_NMI
 
 	; load the character set
-	call LOAD_CHR_SET
+	call 	LOAD_CHR_SET
 
 	; set up main screen layout
-	ld HL,VRAM_NAME
-	ld DE,SCREEN_LAYOUT
-	ld BC,24*32
-	call LDIRVM
+	ld 	hl,VRAM_NAME
+	ld 	de,SCREEN_LAYOUT
+	ld 	bc,24*32
+	call 	LDIRVM
 
-	ld HL,VDU_WRITES
-	call SET_VDU_HOOK
-	call ENABLE_NMI
+	ld 	hl,VDU_WRITES
+	call 	SET_VDU_HOOK
+	call 	ENABLE_NMI
 
-	call GAME_START
+	call 	GAME_START
 
 MLOOP:
 	; delay
-	ld HL,TIMER_LONG
-	xor A
-	call REQUEST_SIGNAL
-	ld (LongTimer),A
+	ld 	hl,TIMER_LONG
+	xor 	a
+	call 	REQUEST_SIGNAL
+	ld 	(LongTimer),a
 MLOOP_DELAY:
-	ld A,(LongTimer)
-	call TEST_SIGNAL
-	or A
-	jr Z,MLOOP_DELAY
-	call FREE_SIGNAL
+	ld 	a,(LongTimer)
+	call 	TEST_SIGNAL
+	or 	a
+	jr 	z,MLOOP_DELAY
+	call 	FREE_SIGNAL
 
-	call COMPUTER_TURN
-	call PLAYER_TURN
+	call 	COMPUTER_TURN
+	call 	PLAYER_TURN
 
-	jr MLOOP
+	jr 	MLOOP
 
 GAME_START:
-	ld HL,VRAM_NAME+15*32+15
-	ld DE,LAYOUT_ASTERISK
-	ld BC,2
-	call LDIRVM
+	ld 	hl,VRAM_NAME+15*32+15
+	ld 	de,LAYOUT_ASTERISK
+	ld 	bc,2
+	call 	LDIRVM
 AWAIT_START:
-	call JOYPAD
-	cp 10
-	jr NZ,AWAIT_START
+	call 	JOYPAD
+	cp 	10
+	jr 	nz,AWAIT_START
 	; seed random with the time that has passed
-	ld HL,(TIME)
-	call SEED_RANDOM
+	ld 	hl,(TIME)
+	call 	SEED_RANDOM
 	ret
 
 COMPUTER_TURN:
 	; get current pattern address
-	ld HL,PATTERN
-	ld A,(CCOUNT)
-	ld E,A
-	ld D,0
-	add HL,DE
+	ld 	hl,PATTERN
+	ld 	a,(CCOUNT)
+	ld 	e,a
+	ld 	d,0
+	add 	hl,de
 	; generate a random number 1-4 and store in pattern
-	push HL
-	call RND_LFSR
-	pop HL
-	ld DE,(TIME)
-	xor E
-	and $03
-	inc A
-	ld (HL),A
+	push 	hl
+	call 	RND_LFSR
+	pop 	hl
+	ld 	de,(TIME)
+	xor 	e
+	and 	$03
+	inc	a
+	ld 	(hl),a
 	; increment CCOUNT
-	ld A,(CCOUNT)
-	inc A
-	ld (CCOUNT),A
-	ld HL,VRAM_NAME+15*32+16
-	call DISPLAY_DIGITS
+	ld 	a,(CCOUNT)
+	inc 	a
+	ld 	(CCOUNT),a
+	ld 	hl,VRAM_NAME+15*32+16
+	call 	DISPLAY_DIGITS
 	; initialize playback counter
-	xor A
-	ld (RCOUNT),A
+	xor 	a
+	ld 	(RCOUNT),a
 COMPUTER_TURN_PLAY:
 	; delay
-	ld HL,TIMER_PAUSE
-	xor A
-	call REQUEST_SIGNAL
-	ld (PauseTimer),A
+	ld 	hl,TIMER_PAUSE
+	xor 	a
+	call 	REQUEST_SIGNAL
+	ld 	(PauseTimer),a
 COMPUTER_TURN_PLAY_DELAY:
-	call RND_LFSR
-	ld A,(PauseTimer)
-	call TEST_SIGNAL
-	or A
-	jr Z,COMPUTER_TURN_PLAY_DELAY
-	call FREE_SIGNAL
+	call 	RND_LFSR
+	ld 	a,(PauseTimer)
+	call 	TEST_SIGNAL
+	or 	a
+	jr 	z,COMPUTER_TURN_PLAY_DELAY
+	call 	FREE_SIGNAL
 	; get next pattern pad
-	ld HL,PATTERN
-	ld A,(RCOUNT)
-	ld E,A
-	ld D,0
-	add HL,DE
-	ld A,(HL)
+	ld 	hl,PATTERN
+	ld 	a,(RCOUNT)
+	ld 	e,a
+	ld 	d,0
+	add 	hl,de
+	ld 	a,(hl)
 	; play the pad in the pattern
-	call PLAY_PAD
+	call 	PLAY_PAD
 	; delay
-	ld A,(CCOUNT)
-	call PATTERN_DELAY
+	ld 	a,(CCOUNT)
+	call 	PATTERN_DELAY
 	; stop playing pad
-	ld A,VALUE_N
-	call PLAY_PAD
+	ld 	a,VALUE_N
+	call 	PLAY_PAD
 	; increment playback count
-	ld A,(RCOUNT)
-	inc A
-	ld (RCOUNT),A
+	ld 	a,(RCOUNT)
+	inc 	a
+	ld 	(RCOUNT),a
 	; check if finished pattern
-	ld HL,CCOUNT
-	cp (HL)
-	jr NZ,COMPUTER_TURN_PLAY
+	ld 	hl,CCOUNT
+	cp 	(hl)
+	jr 	NZ,COMPUTER_TURN_PLAY
 	ret
 
 PLAYER_TURN:
 	; monitor controller
-	call JOYDIR
-	or A
-	jr Z,PLAYER_TURN
+	call 	JOYDIR
+	or 	a
+	jr 	z,PLAYER_TURN
 	; joystick direction pressed
-	call JOY2PAD
+	call 	JOY2PAD
 	; check input against pattern, end turn and reset if wrong
-	ld B,A
-	ld HL,PATTERN
-	ld A,(PCOUNT)
-	ld E,A
-	ld D,0
-	add HL,DE
-	ld A,B
-	cp (HL)
-	jr Z,PLAYER_TURN_RIGHT
-	ld B,5
-	call PLAY_IT
+	ld 	b,a
+	ld 	hl,PATTERN
+	ld 	a,(PCOUNT)
+	ld 	e,a
+	ld 	d,0
+	add 	hl,de
+	ld 	a,b
+	cp 	(hl)
+	jr 	z,PLAYER_TURN_RIGHT
+	ld 	b,5
+	call 	PLAY_IT
 	; check current score against high score
-	ld A,(CCOUNT)
-	dec A
-	ld B,A
-	ld A,(HISCORE)
-	cp B
-	jr NC,PLAYER_TURN_HR
+	ld 	a,(CCOUNT)
+	dec 	a
+	ld 	b,a
+	ld 	a,(HISCORE)
+	cp 	b
+	jr 	nc,PLAYER_TURN_HR
 	; save high score
-	ld A,B
-	ld (HISCORE),A
+	ld 	a,b
+	ld 	(HISCORE),a
 	; display high score
-	ld HL,VRAM_NAME+8*32+18
-	call DISPLAY_DIGITS
-	ld HL,VRAM_NAME+8*32+13
-	ld DE,LAYOUT_BEST
-	ld BC,4
-	call LDIRVM
+	ld 	hl,VRAM_NAME+8*32+18
+	call 	DISPLAY_DIGITS
+	ld 	hl,VRAM_NAME+8*32+13
+	ld 	de,LAYOUT_BEST
+	ld 	bc,4
+	call 	LDIRVM
 PLAYER_TURN_HR:
 	; reset counters
-	xor A
-	ld (CCOUNT),A
-	ld (PCOUNT),A
-	call GAME_START
+	xor 	a
+	ld 	(CCOUNT),a
+	ld 	(PCOUNT),a
+	call 	GAME_START
 	ret
 PLAYER_TURN_AR1:
-	call JOYDIR
-	or A
-	jr NZ,PLAYER_TURN_AR1
-	jr PLAYER_TURN_END
+	call 	JOYDIR
+	or 	a
+	jr 	nz,PLAYER_TURN_AR1
+	jr 	PLAYER_TURN_END
 PLAYER_TURN_RIGHT:
 	; play pad if correct
-	call PLAY_PAD
+	call 	PLAY_PAD
 PLAYER_TURN_AR2:
-	call JOYDIR
-	or A
-	jr NZ,PLAYER_TURN_AR2
+	call	JOYDIR
+	or 	a
+	jr 	nz,PLAYER_TURN_AR2
 	; joystick released, release the pad
-	call JOY2PAD
-	call PLAY_PAD
+	call 	JOY2PAD
+	call 	PLAY_PAD
 	; update count
-	ld A,(PCOUNT)
-	inc A
-	ld (PCOUNT),A
+	ld 	a,(PCOUNT)
+	inc 	a
+	ld 	(PCOUNT),a
 	; end turn if pattern complete
-	ld HL,CCOUNT
-	cp (HL)
-	jr NZ,PLAYER_TURN
+	ld 	hl,CCOUNT
+	cp 	(hl)
+	jr 	nz,PLAYER_TURN
 PLAYER_TURN_END:
 	; reset count and return
-	xor A
-	ld (PCOUNT),A
+	xor 	a
+	ld 	(PCOUNT),a
 	ret
 
 PATTERN_DELAY:
-	cp 14
-	jr NC,PATTERN_DELAY_SHORT
-	cp 6
-	jr NC,PATTERN_DELAY_MEDIUM
+	cp 	14
+	jr 	nc,PATTERN_DELAY_SHORT
+	cp 	6
+	jr 	nc,PATTERN_DELAY_MEDIUM
 PATTERN_DELAY_LONG:
-	ld HL,TIMER_LONG
-	xor A
-	call REQUEST_SIGNAL
-	ld (LongTimer),A
+	ld 	hl,TIMER_LONG
+	xor 	a
+	call 	REQUEST_SIGNAL
+	ld 	(LongTimer),a
 PATTERN_DELAY_LONG_T:
-	ld A,(LongTimer)
-	call TEST_SIGNAL
-	or A
-	jr Z,PATTERN_DELAY_LONG_T
-	call FREE_SIGNAL
+	ld 	a,(LongTimer)
+	call 	TEST_SIGNAL
+	or 	a
+	jr 	z,PATTERN_DELAY_LONG_T
+	call 	FREE_SIGNAL
 	ret
 PATTERN_DELAY_MEDIUM:
-	ld HL,TIMER_MEDIUM
-	xor A
-	call REQUEST_SIGNAL
-	ld (MediumTimer),A
+	ld 	hl,TIMER_MEDIUM
+	xor 	a
+	call 	REQUEST_SIGNAL
+	ld 	(MediumTimer),a
 PATTERN_DELAY_MEDIUM_T:
-	ld A,(MediumTimer)
-	call TEST_SIGNAL
-	or A
-	jr Z,PATTERN_DELAY_MEDIUM_T
-	call FREE_SIGNAL
+	ld 	a,(MediumTimer)
+	call 	TEST_SIGNAL
+	or 	a
+	jr 	z,PATTERN_DELAY_MEDIUM_T
+	call 	FREE_SIGNAL
 	ret
 PATTERN_DELAY_SHORT:
-	ld HL,TIMER_SHORT
-	xor A
-	call REQUEST_SIGNAL
-	ld (ShortTimer),A
+	ld 	hl,TIMER_SHORT
+	xor 	a
+	call 	REQUEST_SIGNAL
+	ld 	(ShortTimer),a
 PATTERN_DELAY_SHORT_T:
-	ld A,(ShortTimer)
-	call TEST_SIGNAL
-	or A
-	jr Z,PATTERN_DELAY_SHORT_T
-	call FREE_SIGNAL
+	ld 	a,(ShortTimer)
+	call 	TEST_SIGNAL
+	or 	a
+	jr 	z,PATTERN_DELAY_SHORT_T
+	call 	FREE_SIGNAL
 	ret
 
 DISPLAY_DIGITS:
 	; display low digit of A
-	call BIN2BCD
-	ld E,A
-	push DE
-	and $0f
-	ld BC,1
-	call FILVRM
+	call 	BIN2BCD
+	ld 	e,a
+	push 	de
+	and 	$0f
+	ld 	bc,1
+	call 	FILVRM
 	; display high digit of A
-	pop DE
-	ld A,E
-	srl A
-	srl A
-	srl A
-	srl A
-	or A
-	jr NZ,DISPLAY_DIGITS_HI
-	add A,10
+	pop 	de
+	ld 	a,e
+	srl 	a
+	srl 	a
+	srl 	a
+	srl 	a
+	or 	a
+	jr 	nz,DISPLAY_DIGITS_HI
+	add 	a,10
 DISPLAY_DIGITS_HI:
-	dec HL
-	ld BC,1
-	call FILVRM
+	dec 	hl
+	ld 	bc,1
+	call 	FILVRM
 	ret
 
 JOY2PAD:
-	ld B,VALUE_G
-	bit 0,A ; up / green
-	jr NZ,JOY2PAD_RET
-	ld B,VALUE_R
-	bit 1,A ; right / red
-	jr NZ,JOY2PAD_RET
-	ld B,VALUE_B
-	bit 2,A ; down / blue
-	jr NZ,JOY2PAD_RET
-	ld B,VALUE_Y
-	bit 3,A ; left / yellow
-	jr NZ,JOY2PAD_RET
-	ld B,VALUE_N
+	ld 	b,VALUE_G
+	bit 	0,a ; up / green
+	jr 	nz,JOY2PAD_RET
+	ld 	b,VALUE_R
+	bit 	1,a ; right / red
+	jr 	nz,JOY2PAD_RET
+	ld 	b,VALUE_B
+	bit 	2,a ; down / blue
+	jr 	nz,JOY2PAD_RET
+	ld 	b,VALUE_Y
+	bit 	3,a ; left / yellow
+	jr 	nz,JOY2PAD_RET
+	ld 	b,VALUE_N
 JOY2PAD_RET:
-	ld A,B
+	ld 	a,b
 	ret
 
 PLAY_PAD:
-	ld HL,TILESET_COL_N
-	ld DE,HL
+	ld 	de,TILESET_COL_N
 	; skip straight to load base color map if joystick neutral (no sound)
-	or A
-	jr Z,LOAD_COL
+	or 	a
+	jr 	z,LOAD_COL
 	; otherwise, multiply to get the color map address
-	ld B,A
-	push BC
-	ld DE,22
+	ld 	b,a
+	push 	bc
+	ld	hl,TILESET_COL_N
+	ld 	de,22
 PLAY_PAD_LOOP:
-	add HL,DE
-	djnz PLAY_PAD_LOOP
+	add 	hl,de
+	djnz 	PLAY_PAD_LOOP
 	; load the color map for the pad
-	ld DE,HL
-	call LOAD_COL
+	push 	hl
+	pop	de
+	call 	LOAD_COL
 	; play the sound for the pad
-	pop BC
-	call PLAY_IT
+	pop 	bc
+	call 	PLAY_IT
 	ret
 
 LOAD_CHR_SET:
 	; load patterns
-	ld HL,0
-	ld DE,TILESET_PAT
-	ld BC,TILESET_SIZE*8
-	call LDIRVM
+	ld 	hl,0
+	ld 	de,TILESET_PAT
+	ld 	bc,TILESET_SIZE*8
+	call 	LDIRVM
 	; load white color
-	ld HL,VRAM_COLOR
-	ld A,$f1
-	ld BC,10
-	call FILVRM
-	ld DE,TILESET_COL_N
-	call LOAD_COL
+	ld 	hl,VRAM_COLOR
+	ld 	a,$f1
+	ld 	bc,10
+	call 	FILVRM
+	ld 	de,TILESET_COL_N
+	call 	LOAD_COL
 	ret
 
 LOAD_COL:
-	ld HL,VRAM_COLOR+10
-	ld BC,22
-	call LDIRVM
+	ld 	hl,VRAM_COLOR+10
+	ld 	bc,22
+	call 	LDIRVM
 	ret
 
 VDU_WRITES:
@@ -723,48 +724,48 @@ SCREEN_LAYOUT:
 	db 010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010,010 ; 023
 
 LAYOUT_BEST:
-	db 030,031,032,033
+	db 	030,031,032,033
 
 LAYOUT_ASTERISK:
-	db 034,035
+	db 	034,035
 
 green:
-	db $80,$53,$01,$0f
-	db $90
-	dw $0000
+	db 	$80,$53,$01,$0f
+	db 	$90
+	dw 	$0000
 red:
-	db $80,$93,$01,$0f
-	db $90
-	dw $0000
+	db 	$80,$93,$01,$0f
+	db 	$90
+	dw 	$0000
 blue:
-	db $80,$a7,$02,$0f
-	db $90
-	dw $0000
+	db 	$80,$a7,$02,$0f
+	db 	$90
+	dw 	$0000
 yellow:
-	db $80,$fc,$01,$0f
-	db $90
-	dw $0000
+	db 	$80,$fc,$01,$0f
+	db 	$90
+	dw 	$0000
 wrong:
-	db $80,$ff,$03,$2f
-	db $90
-	dw $0000
+	db 	$80,$ff,$03,$2f
+	db 	$90
+	dw 	$0000
 
 SoundDataCount:		equ 7
 Len_SoundDataArea:	equ 10*SoundDataCount+1 	; 7 data areas
 SoundAddrs:
-	dw green,SoundDataArea
-	dw red,SoundDataArea+10
-	dw blue,SoundDataArea+20
-	dw yellow,SoundDataArea+30
-	dw wrong,SoundDataArea+40
-	dw 0,0
+	dw 	green,SoundDataArea
+	dw 	red,SoundDataArea+10
+	dw 	blue,SoundDataArea+20
+	dw 	yellow,SoundDataArea+30
+	dw 	wrong,SoundDataArea+40
+	dw 	0,0
 
 	include "../../../include/bcd.asm"
 	include "../../../include/library.asm"
 
-END:	equ $
+END:			equ $
 
-	org RAMSTART
+	org 	RAMSTART
 
 LongTimer:	ds 1
 MediumTimer:	ds 1
@@ -777,4 +778,4 @@ HISCORE:	ds 1
 PATTERN:	ds 99
 
 SoundDataArea:
-	ds Len_SoundDataArea
+	ds 	Len_SoundDataArea
