@@ -4,20 +4,20 @@
 ; A  -> binary number [0..99]
 ; A  <- BCD numer [00h..99h]
 BIN2BCD:
-	push	BC
-	ld	B,10
-	ld	C,-1
+	push	bc
+	ld	b,10
+	ld	c,-1
 DIV10:
-	inc	C
-	sub	B
-	jr	NC,DIV10
-	add	A,B
-	ld	B,A
-	ld	A,C
-	add	A,A
-	add	A,A
-	add	A,A
-	add	A,A
-	or	B
-	pop	BC
+	inc	c
+	sub	b
+	jr	nc,DIV10
+	add	a,b
+	ld	b,a
+	ld	a,c
+	add	a,a
+	add	a,a
+	add	a,a
+	add	a,a
+	or	b
+	pop	bc
 	ret
