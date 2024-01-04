@@ -173,7 +173,7 @@ COMPUTER_TURN_PLAY_DELAY:
 	ld 	a,(CCOUNT)
 	call 	PATTERN_DELAY
 	; stop playing pad
-	ld 	a,VALUE_N
+	xor	a
 	call 	PLAY_PAD
 	; increment playback count
 	ld 	a,(RCOUNT)
@@ -314,7 +314,6 @@ DISPLAY_DIGITS:
 	srl 	a
 	srl 	a
 	srl 	a
-	or 	a
 	jr 	nz,DISPLAY_DIGITS_HI
 	add 	a,10
 DISPLAY_DIGITS_HI:
@@ -324,19 +323,23 @@ DISPLAY_DIGITS_HI:
 	ret
 
 JOY2PAD:
-	ld 	b,VALUE_G
-	bit 	0,a ; up / green
+	; green / up
+	ld 	b,1
+	bit 	0,a
 	jr 	nz,JOY2PAD_RET
-	ld 	b,VALUE_R
-	bit 	1,a ; right / red
+	; red / right
+	inc	b
+	bit 	1,a
 	jr 	nz,JOY2PAD_RET
-	ld 	b,VALUE_B
-	bit 	2,a ; down / blue
+	; blue / down
+	inc	b
+	bit 	2,a
 	jr 	nz,JOY2PAD_RET
-	ld 	b,VALUE_Y
-	bit 	3,a ; left / yellow
+	; yellow / left
+	inc	b
+	bit 	3,a
 	jr 	nz,JOY2PAD_RET
-	ld 	b,VALUE_N
+	ld 	b,0
 JOY2PAD_RET:
 	ld 	a,b
 	ret
@@ -393,11 +396,6 @@ TIMER_SHORT:		equ $0017
 TIMER_PAUSE:		equ $0006
 
 TILESET_SIZE:		equ 256
-VALUE_N:		equ 0
-VALUE_G:		equ 1
-VALUE_R:		equ 2
-VALUE_B:		equ 3
-VALUE_Y:		equ 4
 
 TILESET_PAT:
 	; background tiles
