@@ -1,4 +1,4 @@
-	include "../../../include/coleco.asm"
+	include "coleco.asm"
 
 	org $8000
 
@@ -36,6 +36,6 @@ rst_38:
 START:
 	jp BOOT_UP
 
-	include "../../../include/library.asm"
+	include "library.asm"
 
 END:	equ $

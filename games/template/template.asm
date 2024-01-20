@@ -1,4 +1,4 @@
-	include "../../../include/coleco.asm"
+	include "coleco.asm"
 
 	org $8000
 
@@ -291,7 +291,7 @@ SoundAddrs:
 	dw bounce,SoundDataArea				; 1 ball bounce sound
 	dw 0,0
 
-	include "../../../include/library.asm"
+	include "library.asm"
 
 END:	equ $
 

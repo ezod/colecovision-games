@@ -1,7 +1,7 @@
 ; RE-PETE
 ; A Simon clone for ColecoVision.
 
-	include "../../../include/coleco.asm"
+	include "coleco.asm"
 
 	org 	$8000
 
@@ -35,7 +35,7 @@ rst_38:
 
 	jp 	NMI
 
-	db 	"RE-PETE/OPRETO PRESENTS/2023"
+	db 	"RE-PETE/LOGICK WORKSHOP PRESENTS/2023"
 
 START:
 	; set stack pointer
@@ -758,8 +758,8 @@ SoundAddrs:
 	dw 	wrong,SoundDataArea+40
 	dw 	0,0
 
-	include "../../../include/bcd.asm"
-	include "../../../include/library.asm"
+	include "bcd.asm"
+	include "library.asm"
 
 END:			equ $
 
