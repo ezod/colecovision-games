@@ -1,5 +1,7 @@
 BUILDDIR= build
 INCLUDEDIR= ../../include
+ASM= ${SJASM}
+PACKAGER= ${FILEPACK}
 
 .PHONY: all package clean
 
