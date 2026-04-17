@@ -61,11 +61,15 @@ START:
 
 	; load first neko frame sprite patterns
 	ld 	hl,VRAM_SPRGEN
-	ld 	de,SPDATA
+	ld 	de,SPNEKO
 	ld 	bc,32*4
 	call 	LDIRVM
 
-        ; TODO: load mouse sprite pattern
+        ; load mouse sprite pattern
+        ld      hl,VRAM_SPRGEN+32*4
+        ld      de,SPMOUSE
+        ld      bc,32
+        call    LDIRVM
 
 	; white backdrop (register 7)
 	ld 	bc,$070f
@@ -102,7 +106,7 @@ MAIN_SCREEN:
 	call 	SET_VDU_HOOK
 	call 	ENABLE_NMI
 
-        ; place initial neko sprite
+        ; place initial neko and mouse sprites
 	ld 	hl,SPRTBL
 	ld 	(hl),79
 	inc 	hl
@@ -135,6 +139,14 @@ MAIN_SCREEN:
 	ld 	(hl),12
 	inc 	hl
 	ld 	(hl),COLOR_BLACK
+        inc     hl
+        ld      (hl),140
+        inc     hl
+        ld      (hl),120
+        inc     hl
+        ld      (hl),16
+        inc     hl
+        ld      (hl),COLOR_BLACK
 
 	; initial neko position and direction
 	ld 	a,112
@@ -205,7 +217,17 @@ SoundAddrs:
 	dw 	silence,SoundDataArea
 	dw 	0,0
 
-SPDATA:
+SPMOUSE:
+        db 000h,000h,000h,000h,004h,009h,002h,030h
+        db 029h,02Ah,03Ch,030h,050h,044h,0D9h,0FFh
+        db 000h,000h,000h,000h,000h,008h,004h,004h
+        db 0E2h,01Ah,009h,065h,085h,082h,0C2h,0FCh
+        db 000h,000h,000h,000h,000h,010h,020h,020h
+        db 047h,058h,090h,0A6h,0A1h,041h,043h,03Fh
+        db 000h,000h,000h,000h,020h,090h,040h,00Ch
+        db 094h,054h,03Ch,00Ch,00Ah,022h,09Bh,0FFh
+
+SPNEKO:
 	db 000h,000h,004h,002h,001h,000h,060h,018h
 	db 006h,000h,000h,0F0h,000h,000h,000h,000h
 	db 000h,000h,000h,008h,014h,092h,022h,021h
