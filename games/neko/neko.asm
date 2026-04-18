@@ -269,16 +269,16 @@ MM_SAVEX2:
 	ld 	(MOUSE_X),a
 
 MM_YMOVE:
-	; south: move down, clamp at Y=176 (bottom edge of 16-tall sprite)
+	; south: move down, clamp at Y=175 (bottom edge of 16-tall sprite)
 	bit 	2,b
 	jr 	z,MM_NORTH
 	ld 	a,(MOUSE_Y)
 	add 	a,c
 	jr 	c,MM_YMAX
-	cp 	177
+	cp 	176
 	jr 	c,MM_SAVEY
 MM_YMAX:
-	ld 	a,176
+	ld 	a,175
 MM_SAVEY:
 	ld 	(MOUSE_Y),a
 	jr 	MM_UPDATE
