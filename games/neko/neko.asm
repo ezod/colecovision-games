@@ -154,6 +154,13 @@ MAIN_SCREEN:
 	ld 	a,1
 	ld 	(NEKO_DX),a
 
+	; initial mouse position
+	ld 	a,140
+	ld 	(MOUSE_Y),a
+	ld 	a,120
+	ld 	(MOUSE_X),a
+	xor 	a
+	ld 	(MOUSE_ACNT),a
 
 MLOOP:
 	ld 	a,(TickTimer)
@@ -162,6 +169,7 @@ MLOOP:
 	jr 	z,MLOOP
 
 	call 	MOVE_NEKO
+	call 	MOVE_MOUSE
 	jr 	MLOOP
 
 MOVE_NEKO:
@@ -201,6 +209,104 @@ MN_UPDATE:
 	ld 	hl,SPRTBL+9		; TR X
 	ld 	(hl),a
 	ld 	hl,SPRTBL+13		; BR X
+	ld 	(hl),a
+	ret
+
+MOVE_MOUSE:
+	call 	JOYDIR
+	or 	a
+	jr 	z,MM_STOP
+
+	ld 	b,a
+
+	; ramp up hold counter, cap at 30
+	ld 	a,(MOUSE_ACNT)
+	cp 	30
+	jr 	nc,MM_SPD
+	inc 	a
+	ld 	(MOUSE_ACNT),a
+MM_SPD:
+	; derive speed: 0-9=1, 10-19=2, 20-29=3, 30+=4
+	ld 	a,(MOUSE_ACNT)
+	cp 	30
+	jr 	nc,MM_S4
+	cp 	20
+	jr 	nc,MM_S3
+	cp 	10
+	jr 	nc,MM_S2
+	ld 	c,1
+	jr 	MM_XMOVE
+MM_S4:	ld 	c,4
+	jr 	MM_XMOVE
+MM_S3:	ld 	c,3
+	jr 	MM_XMOVE
+MM_S2:	ld 	c,2
+
+MM_XMOVE:
+	; east: move right, clamp at X=240 (right edge of 16-wide sprite)
+	bit 	1,b
+	jr 	z,MM_WEST
+	ld 	a,(MOUSE_X)
+	add 	a,c
+	jr 	c,MM_XMAX
+	cp 	241
+	jr 	c,MM_SAVEX
+MM_XMAX:
+	ld 	a,240
+MM_SAVEX:
+	ld 	(MOUSE_X),a
+	jr 	MM_YMOVE
+
+MM_WEST:
+	; west: move left, clamp at X=0
+	bit 	3,b
+	jr 	z,MM_YMOVE
+	ld 	a,(MOUSE_X)
+	sub 	c
+	jr 	nc,MM_SAVEX2
+	xor 	a
+MM_SAVEX2:
+	ld 	(MOUSE_X),a
+
+MM_YMOVE:
+	; south: move down, clamp at Y=176 (bottom edge of 16-tall sprite)
+	bit 	2,b
+	jr 	z,MM_NORTH
+	ld 	a,(MOUSE_Y)
+	add 	a,c
+	jr 	c,MM_YMAX
+	cp 	177
+	jr 	c,MM_SAVEY
+MM_YMAX:
+	ld 	a,176
+MM_SAVEY:
+	ld 	(MOUSE_Y),a
+	jr 	MM_UPDATE
+
+MM_NORTH:
+	; north: move up, clamp at Y=0
+	bit 	0,b
+	jr 	z,MM_UPDATE
+	ld 	a,(MOUSE_Y)
+	sub 	c
+	jr 	nc,MM_SAVEY2
+	xor 	a
+MM_SAVEY2:
+	ld 	(MOUSE_Y),a
+	jr 	MM_UPDATE
+
+MM_STOP:
+	; no direction held: reset acceleration
+	xor 	a
+	ld 	(MOUSE_ACNT),a
+
+MM_UPDATE:
+	; write mouse position into sprite table (sprite 4)
+	ld 	a,(MOUSE_Y)
+	ld 	hl,SPRTBL+16
+	ld 	(hl),a
+	ld 	a,(MOUSE_X)
+	ld 	hl,SPRTBL+17
 	ld 	(hl),a
 	ret
 
@@ -621,6 +727,9 @@ END:	equ $
 
 NEKO_X:		ds 1
 NEKO_DX:	ds 1
+MOUSE_X:	ds 1
+MOUSE_Y:	ds 1
+MOUSE_ACNT:	ds 1
 
 SoundDataArea:
 	ds 	Len_SoundDataArea
