@@ -51,7 +51,7 @@ rst_38:
 	nop
 	jp      NMI
 
-	db      "COLECO NEKO/LOGICK WORKSHOP PRESENTS/2026"
+	db      "COLECO NEKO/HAPPY BIRTHDAY STARR!/2026"
 
 START:
 	ld 	sp,StackTop
