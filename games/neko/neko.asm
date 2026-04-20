@@ -182,25 +182,29 @@ MLOOP:
 	jr 	MLOOP
 
 MOVE_NEKO:
-	; compute abs(dx) = |MOUSE_X - NEKO_X|
+	; compute abs center-to-center dx: |(NEKO_X+16) - (MOUSE_X+8)|
 	ld	a,(MOUSE_X)
+	add	a,8			; mouse center X
 	ld	b,a
 	ld	a,(NEKO_X)
+	add	a,16			; neko center X
 	sub	b
 	jr	nc,MN_DX_POS
 	neg
 MN_DX_POS:
-	ld	c,a			; C = abs(dx)
+	ld	c,a			; C = abs(center dx)
 
-	; compute abs(dy) = |MOUSE_Y - NEKO_Y|
+	; compute abs center-to-center dy: |(NEKO_Y+16) - (MOUSE_Y+8)|
 	ld	a,(MOUSE_Y)
+	add	a,8			; mouse center Y
 	ld	b,a
 	ld	a,(NEKO_Y)
+	add	a,16			; neko center Y
 	sub	b
 	jr	nc,MN_DY_POS
 	neg
 MN_DY_POS:
-	ld	e,a			; E = abs(dy)
+	ld	e,a			; E = abs(center dy)
 
 	; check if neko has reached the mouse
 	ld	a,c
