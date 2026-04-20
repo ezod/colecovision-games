@@ -7,6 +7,7 @@
 NEKO_SPEED      equ 2
 NEKO_CLOSE      equ 12
 ANIM_RATE       equ 6
+TMRAWAKE        equ 15
 TMRSTOP         equ 30
 TMRSCRATCH      equ 120
 TMRYAWN         equ 30
@@ -133,7 +134,7 @@ MAIN_SCREEN:
 	ld	(NEKO_Y),a
 	ld	a,112
 	ld	(NEKO_X),a
-	ld	a,NS_RUN_N
+	ld	a,NS_SLEEP
 	ld	(NEKO_STATE),a
 	xor	a
 	ld	(NEKO_ANIM),a
@@ -211,6 +212,29 @@ MN_DY_POS:
 	jp	MN_IDLE
 
 MN_CHASE:
+	; brief wakeup pause when transitioning from idle to running
+	ld	a,(NEKO_STATE)
+	cp	NS_RUN_N
+	jr	nc,MN_DO_CHASE		; already running, skip wakeup
+	cp	NS_AWAKE
+	jr	z,MN_WAKING		; already in wakeup, tick timer
+	; was deeper idle: enter wakeup
+	ld	a,NS_AWAKE
+	ld	(NEKO_STATE),a
+	ld	a,TMRAWAKE
+	ld	(NEKO_IDLE_TMR),a
+MN_WAKING:
+	ld	hl,NEKO_IDLE_TMR
+	ld	a,(hl)
+	or	a
+	jr	z,MN_DO_CHASE		; timer expired, begin chase
+	dec	a
+	ld	(hl),a
+	ld	b,0			; awake sprite (pattern base 0)
+	call	UPDATE_NEKO_SPRITES
+	ret
+
+MN_DO_CHASE:
 	; determine x-sign: 0=same, 1=east, 2=west
 	ld	a,(NEKO_X)
 	ld	b,a
