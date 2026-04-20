@@ -87,10 +87,10 @@ START:
 	ld	bc,256
 	call	LDIRVM
 
-        ; load mouse sprite pattern at VRAM+1280
+        ; load both mouse sprite frames at VRAM+1280 (left=160, right=164)
         ld      hl,VRAM_SPRGEN+1280
         ld      de,SPMOUSE
-        ld      bc,32
+        ld      bc,64
         call    LDIRVM
 
 	; white backdrop (register 7)
@@ -152,6 +152,7 @@ MAIN_SCREEN:
 	ld	(MOUSE_X),a
 	xor	a
 	ld	(MOUSE_ACNT),a
+	ld	(MOUSE_FACING),a
 
 	; place initial sprites
 	ld	b,128
@@ -556,6 +557,8 @@ MM_XMAX:
 	ld 	a,240
 MM_SAVEX:
 	ld 	(MOUSE_X),a
+	ld	a,1
+	ld	(MOUSE_FACING),a	; moving east: right-facing
 	jr 	MM_YMOVE
 
 MM_WEST:
@@ -568,6 +571,8 @@ MM_WEST:
 	xor 	a
 MM_SAVEX2:
 	ld 	(MOUSE_X),a
+	xor	a
+	ld	(MOUSE_FACING),a	; moving west: left-facing
 
 MM_YMOVE:
 	; south: move down, clamp at Y=175 (bottom edge of 16-tall sprite)
@@ -602,13 +607,21 @@ MM_STOP:
 	ld 	(MOUSE_ACNT),a
 
 MM_UPDATE:
-	; write mouse position into sprite table (sprite 4)
-	ld 	a,(MOUSE_Y)
-	ld 	hl,SPRTBL+16
-	ld 	(hl),a
-	ld 	a,(MOUSE_X)
-	ld 	hl,SPRTBL+17
-	ld 	(hl),a
+	; write mouse position and facing into sprite table (sprite 4)
+	ld	a,(MOUSE_Y)
+	ld	hl,SPRTBL+16
+	ld	(hl),a
+	inc	hl
+	ld	a,(MOUSE_X)
+	ld	(hl),a
+	inc	hl
+	ld	a,(MOUSE_FACING)
+	or	a
+	ld	a,160			; left-facing
+	jr	z,MM_SAVE_PAT
+	ld	a,164			; right-facing
+MM_SAVE_PAT:
+	ld	(hl),a
 	ret
 
 VDU_WRITES:
@@ -1052,6 +1065,7 @@ NEKO_RELOAD:	ds 1
 MOUSE_X:	ds 1
 MOUSE_Y:	ds 1
 MOUSE_ACNT:	ds 1
+MOUSE_FACING:	ds 1
 
 SoundDataArea:
 	ds 	Len_SoundDataArea
