@@ -3,6 +3,22 @@
 
         include "coleco.asm"
 
+; --- Neko game constants ---
+NEKO_SPEED      equ 2
+NEKO_CLOSE      equ 12
+ANIM_RATE       equ 6
+TMRSTOP         equ 30
+TMRSCRATCH      equ 120
+TMRYAWN         equ 30
+
+; Neko states
+NS_AWAKE        equ 0
+NS_STOP         equ 1
+NS_SCRATCH      equ 2
+NS_YAWN         equ 3
+NS_SLEEP        equ 4
+NS_RUN_N        equ 5
+
 	org     $8000
 
 	db      $aa,$55			; ColecoVision title screen
@@ -59,14 +75,20 @@ START:
 	; enable timers
 	call 	CREATE_TIMERS
 
-	; load first neko frame sprite patterns
+	; load all 8 idle neko frames into VRAM (frames 0-7, 1024 bytes)
 	ld 	hl,VRAM_SPRGEN
 	ld 	de,SPNEKO
-	ld 	bc,32*4
+	ld 	bc,8*128
 	call 	LDIRVM
 
-        ; load mouse sprite pattern
-        ld      hl,VRAM_SPRGEN+32*4
+	; load initial running frames direction N (2 frames, 256 bytes) at VRAM+1024
+	ld	hl,VRAM_SPRGEN+1024
+	ld	de,SPNEKO+1024
+	ld	bc,256
+	call	LDIRVM
+
+        ; load mouse sprite pattern at VRAM+1280
+        ld      hl,VRAM_SPRGEN+1280
         ld      de,SPMOUSE
         ld      bc,32
         call    LDIRVM
@@ -106,61 +128,46 @@ MAIN_SCREEN:
 	call 	SET_VDU_HOOK
 	call 	ENABLE_NMI
 
-        ; place initial neko and mouse sprites
-	ld 	hl,SPRTBL
-	ld 	(hl),79
-	inc 	hl
-	ld 	(hl),112
-	inc 	hl
-	ld 	(hl),0
-	inc 	hl
-	ld 	(hl),COLOR_BLACK
-	inc 	hl
-	ld 	(hl),95
-	inc 	hl
-	ld 	(hl),112
-	inc 	hl
-	ld 	(hl),4
-	inc 	hl
-	ld 	(hl),COLOR_BLACK
-	inc 	hl
-	ld 	(hl),79
-	inc 	hl
-	ld 	(hl),128
-	inc 	hl
-	ld 	(hl),8
-	inc 	hl
-	ld 	(hl),COLOR_BLACK
-	inc 	hl
-	ld 	(hl),95
-	inc 	hl
-	ld 	(hl),128
-	inc 	hl
-	ld 	(hl),12
-	inc 	hl
-	ld 	(hl),COLOR_BLACK
-        inc     hl
-        ld      (hl),140
-        inc     hl
-        ld      (hl),120
-        inc     hl
-        ld      (hl),16
-        inc     hl
-        ld      (hl),COLOR_BLACK
-
-	; initial neko position and direction
-	ld 	a,112
-	ld 	(NEKO_X),a
-	ld 	a,1
-	ld 	(NEKO_DX),a
+	; initial neko state and position
+	ld	a,79
+	ld	(NEKO_Y),a
+	ld	a,112
+	ld	(NEKO_X),a
+	ld	a,NS_RUN_N
+	ld	(NEKO_STATE),a
+	xor	a
+	ld	(NEKO_ANIM),a
+	ld	a,ANIM_RATE
+	ld	(NEKO_ANIM_TMR),a
+	xor	a
+	ld	(NEKO_IDLE_TMR),a
+	ld	(NEKO_DIR),a
+	ld	a,$ff
+	ld	(NEKO_RELOAD),a
 
 	; initial mouse position
-	ld 	a,140
-	ld 	(MOUSE_Y),a
-	ld 	a,120
-	ld 	(MOUSE_X),a
-	xor 	a
-	ld 	(MOUSE_ACNT),a
+	ld	a,140
+	ld	(MOUSE_Y),a
+	ld	a,120
+	ld	(MOUSE_X),a
+	xor	a
+	ld	(MOUSE_ACNT),a
+
+	; place initial sprites
+	ld	b,128
+	call	UPDATE_NEKO_SPRITES
+
+	; mouse sprite (sprite 4 at SPRTBL+16): Y, X, pattern 160, color
+	ld	hl,SPRTBL+16
+	ld	a,(MOUSE_Y)
+	ld	(hl),a
+	inc	hl
+	ld	a,(MOUSE_X)
+	ld	(hl),a
+	inc	hl
+	ld	(hl),160
+	inc	hl
+	ld	(hl),COLOR_BLACK
 
 MLOOP:
 	ld 	a,(TickTimer)
@@ -173,43 +180,337 @@ MLOOP:
 	jr 	MLOOP
 
 MOVE_NEKO:
-	; check direction and move one pixel
-	ld 	a,(NEKO_DX)
-	or 	a
-	jp 	m,MN_LEFT
-	; moving right: bounce at X=224 (right edge of 32-wide sprite)
-	ld 	a,(NEKO_X)
-	cp 	224
-	jr 	nc,MN_BOUNCE
-	inc 	a
-	ld 	(NEKO_X),a
-	jr 	MN_UPDATE
-MN_LEFT:
-	; moving left: bounce at X=0
-	ld 	a,(NEKO_X)
-	or 	a
-	jr 	z,MN_BOUNCE
-	dec 	a
-	ld 	(NEKO_X),a
-	jr 	MN_UPDATE
-MN_BOUNCE:
-	ld 	a,(NEKO_DX)
+	; compute abs(dx) = |MOUSE_X - NEKO_X|
+	ld	a,(MOUSE_X)
+	ld	b,a
+	ld	a,(NEKO_X)
+	sub	b
+	jr	nc,MN_DX_POS
 	neg
-	ld 	(NEKO_DX),a
+MN_DX_POS:
+	ld	c,a			; C = abs(dx)
+
+	; compute abs(dy) = |MOUSE_Y - NEKO_Y|
+	ld	a,(MOUSE_Y)
+	ld	b,a
+	ld	a,(NEKO_Y)
+	sub	b
+	jr	nc,MN_DY_POS
+	neg
+MN_DY_POS:
+	ld	e,a			; E = abs(dy)
+
+	; check if neko has reached the mouse
+	ld	a,c
+	cp	NEKO_CLOSE
+	jr	nc,MN_CHASE
+	ld	a,e
+	cp	NEKO_CLOSE
+	jp	nc,MN_CHASE
+	jp	MN_IDLE
+
+MN_CHASE:
+	; determine x-sign: 0=same, 1=east, 2=west
+	ld	a,(NEKO_X)
+	ld	b,a
+	ld	a,(MOUSE_X)
+	cp	b
+	ld	d,0
+	jr	z,MN_XS_DONE
+	jr	c,MN_XS_WEST
+	ld	d,1			; east
+	jr	MN_XS_DONE
+MN_XS_WEST:
+	ld	d,2			; west
+MN_XS_DONE:
+
+	; determine y-sign: 0=same, 1=south, 2=north
+	ld	a,(NEKO_Y)
+	ld	b,a
+	ld	a,(MOUSE_Y)
+	cp	b
+	ld	h,0
+	jr	z,MN_YS_DONE
+	jr	c,MN_YS_NORTH
+	ld	h,1			; south
+	jr	MN_YS_DONE
+MN_YS_NORTH:
+	ld	h,2			; north
+MN_YS_DONE:
+
+	; diagonal pruning:
+	; if abs(dy) > 2*abs(dx) -> pure N/S, clear xsign
+	; if abs(dx) > 2*abs(dy) -> pure E/W, clear ysign
+	ld	a,c
+	add	a,a			; A = 2*abs(dx)
+	jr	c,MN_NO_PURENS		; overflow: definitely not pure NS
+	cp	e
+	jr	nc,MN_NO_PURENS		; 2*abs(dx) >= abs(dy): not pure NS
+	ld	d,0			; pure N/S
+	jr	MN_DIR_DONE
+MN_NO_PURENS:
+	ld	a,e
+	add	a,a			; A = 2*abs(dy)
+	jr	c,MN_DIR_DONE		; overflow: not pure EW
+	cp	c
+	jr	nc,MN_DIR_DONE
+	ld	h,0			; pure E/W
+MN_DIR_DONE:
+
+	; direction = DIRMAP[ysign*3 + xsign]
+	ld	a,h
+	ld	b,a
+	add	a,b
+	add	a,b			; A = 3*ysign
+	add	a,d			; A = 3*ysign + xsign
+	ld	hl,DIRMAP
+	ld	b,0
+	ld	c,a
+	add	hl,bc
+	ld	a,(hl)			; A = direction 0-7
+	ld	b,a
+
+	; if direction changed, schedule VRAM reload via VDU_WRITES
+	ld	a,(NEKO_DIR)
+	cp	b
+	jr	z,MN_NO_RELOAD
+	ld	a,b
+	ld	(NEKO_DIR),a
+	ld	(NEKO_RELOAD),a
+MN_NO_RELOAD:
+
+	; move X toward mouse
+	ld	a,(NEKO_X)
+	ld	b,a
+	ld	a,(MOUSE_X)
+	cp	b
+	jr	z,MN_NO_XMOVE
+	jr	c,MN_MOVE_W
+	ld	a,b
+	add	a,NEKO_SPEED
+	jr	c,MN_XMAX
+	cp	225
+	jr	c,MN_SAVE_X
+MN_XMAX:
+	ld	a,224
+	jr	MN_SAVE_X
+MN_MOVE_W:
+	ld	a,b
+	sub	NEKO_SPEED
+	jr	nc,MN_SAVE_X
+	xor	a
+MN_SAVE_X:
+	ld	(NEKO_X),a
+MN_NO_XMOVE:
+
+	; move Y toward mouse
+	ld	a,(NEKO_Y)
+	ld	b,a
+	ld	a,(MOUSE_Y)
+	cp	b
+	jr	z,MN_NO_YMOVE
+	jr	c,MN_MOVE_N
+	ld	a,b
+	add	a,NEKO_SPEED
+	jr	c,MN_YMAX
+	cp	161
+	jr	c,MN_SAVE_Y
+MN_YMAX:
+	ld	a,160
+	jr	MN_SAVE_Y
+MN_MOVE_N:
+	ld	a,b
+	sub	NEKO_SPEED
+	jr	nc,MN_SAVE_Y
+	xor	a
+MN_SAVE_Y:
+	ld	(NEKO_Y),a
+MN_NO_YMOVE:
+
+	; animation timer
+	ld	hl,NEKO_ANIM_TMR
+	ld	a,(hl)
+	dec	a
+	jr	nz,MN_RUN_TMR_SAVE
+	ld	(hl),ANIM_RATE
+	ld	hl,NEKO_ANIM
+	ld	a,(hl)
+	xor	1
+	ld	(hl),a
+	jr	MN_RUN_ANIM
+MN_RUN_TMR_SAVE:
+	ld	(hl),a
+MN_RUN_ANIM:
+	; pattern base: 128 (run-A) or 144 (run-B)
+	ld	a,(NEKO_ANIM)
+	or	a
+	ld	b,128
+	jr	z,MN_RUN_SPR
+	ld	b,144
+MN_RUN_SPR:
+	ld	a,NS_RUN_N
+	ld	(NEKO_STATE),a
+	call	UPDATE_NEKO_SPRITES
 	ret
-MN_UPDATE:
-	; write new X positions into the sprite table
-	; TL and BL share the same X; TR and BR are 16 pixels to the right
-	ld 	a,(NEKO_X)
-	ld 	hl,SPRTBL+1		; TL X
-	ld 	(hl),a
-	ld 	hl,SPRTBL+5		; BL X
-	ld 	(hl),a
-	add 	a,16
-	ld 	hl,SPRTBL+9		; TR X
-	ld 	(hl),a
-	ld 	hl,SPRTBL+13		; BR X
-	ld 	(hl),a
+
+MN_IDLE:
+	; if running, transition to STOP
+	ld	a,(NEKO_STATE)
+	cp	NS_RUN_N
+	jr	c,MN_IDLE_TICK
+	ld	a,NS_STOP
+	ld	(NEKO_STATE),a
+	ld	a,TMRSTOP
+	ld	(NEKO_IDLE_TMR),a
+
+MN_IDLE_TICK:
+	ld	hl,NEKO_IDLE_TMR
+	ld	a,(hl)
+	or	a
+	jr	z,MN_IDLE_TRANS
+	dec	a
+	ld	(hl),a
+	jr	MN_IDLE_DISP
+
+MN_IDLE_TRANS:
+	ld	a,(NEKO_STATE)
+	cp	NS_STOP
+	jr	nz,MN_CHK_SCR
+	ld	a,NS_SCRATCH
+	ld	(NEKO_STATE),a
+	ld	a,TMRSCRATCH
+	ld	(NEKO_IDLE_TMR),a
+	jr	MN_IDLE_DISP
+MN_CHK_SCR:
+	cp	NS_SCRATCH
+	jr	nz,MN_CHK_YWN
+	ld	a,NS_YAWN
+	ld	(NEKO_STATE),a
+	ld	a,TMRYAWN
+	ld	(NEKO_IDLE_TMR),a
+	jr	MN_IDLE_DISP
+MN_CHK_YWN:
+	cp	NS_YAWN
+	jr	nz,MN_IDLE_DISP
+	ld	a,NS_SLEEP
+	ld	(NEKO_STATE),a
+	xor	a
+	ld	(NEKO_IDLE_TMR),a
+
+MN_IDLE_DISP:
+	; animation timer
+	ld	hl,NEKO_ANIM_TMR
+	ld	a,(hl)
+	dec	a
+	jr	nz,MN_IDLE_TMR_SAVE
+	ld	(hl),ANIM_RATE
+	ld	hl,NEKO_ANIM
+	ld	a,(hl)
+	xor	1
+	ld	(hl),a
+	jr	MN_IDLE_PAT
+MN_IDLE_TMR_SAVE:
+	ld	(hl),a
+
+MN_IDLE_PAT:
+	; pattern base for current idle state
+	ld	a,(NEKO_STATE)
+	cp	NS_STOP
+	jr	z,MN_PAT_STOP
+	cp	NS_SCRATCH
+	jr	z,MN_PAT_SCR
+	cp	NS_YAWN
+	jr	z,MN_PAT_YWN
+	cp	NS_SLEEP
+	jr	z,MN_PAT_SLP
+	ld	b,0			; awake
+	jr	MN_IDLE_SPR
+MN_PAT_STOP:
+	ld	b,16
+	jr	MN_IDLE_SPR
+MN_PAT_SCR:
+	ld	b,48
+	ld	a,(NEKO_ANIM)
+	or	a
+	jr	z,MN_IDLE_SPR
+	ld	b,64
+	jr	MN_IDLE_SPR
+MN_PAT_YWN:
+	ld	b,80
+	jr	MN_IDLE_SPR
+MN_PAT_SLP:
+	ld	b,96
+	ld	a,(NEKO_ANIM)
+	or	a
+	jr	z,MN_IDLE_SPR
+	ld	b,112
+MN_IDLE_SPR:
+	call	UPDATE_NEKO_SPRITES
+	ret
+
+DIRMAP:
+	; indexed by ysign*3 + xsign
+	; ysign: 0=pure EW, 1=south, 2=north
+	; xsign: 0=pure NS, 1=east, 2=west
+	; values: 0=N 1=NE 2=E 3=SE 4=S 5=SW 6=W 7=NW
+	db	0,2,6,4,3,5,0,1,7
+
+UPDATE_NEKO_SPRITES:
+	; B = pattern base; writes SPRTBL sprites 0-3 using NEKO_X/NEKO_Y
+	ld	hl,SPRTBL
+	; TL: Y=NEKO_Y, X=NEKO_X, pattern=B
+	ld	a,(NEKO_Y)
+	ld	(hl),a
+	inc	hl
+	ld	a,(NEKO_X)
+	ld	(hl),a
+	inc	hl
+	ld	(hl),b
+	inc	hl
+	ld	(hl),COLOR_BLACK
+	inc	hl
+	; BL: Y=NEKO_Y+16, X=NEKO_X, pattern=B+4
+	ld	a,(NEKO_Y)
+	add	a,16
+	ld	(hl),a
+	inc	hl
+	ld	a,(NEKO_X)
+	ld	(hl),a
+	inc	hl
+	ld	a,b
+	add	a,4
+	ld	(hl),a
+	inc	hl
+	ld	(hl),COLOR_BLACK
+	inc	hl
+	; TR: Y=NEKO_Y, X=NEKO_X+16, pattern=B+8
+	ld	a,(NEKO_Y)
+	ld	(hl),a
+	inc	hl
+	ld	a,(NEKO_X)
+	add	a,16
+	ld	(hl),a
+	inc	hl
+	ld	a,b
+	add	a,8
+	ld	(hl),a
+	inc	hl
+	ld	(hl),COLOR_BLACK
+	inc	hl
+	; BR: Y=NEKO_Y+16, X=NEKO_X+16, pattern=B+12
+	ld	a,(NEKO_Y)
+	add	a,16
+	ld	(hl),a
+	inc	hl
+	ld	a,(NEKO_X)
+	add	a,16
+	ld	(hl),a
+	inc	hl
+	ld	a,b
+	add	a,12
+	ld	(hl),a
+	inc	hl
+	ld	(hl),COLOR_BLACK
 	ret
 
 MOVE_MOUSE:
@@ -311,6 +612,21 @@ MM_UPDATE:
 	ret
 
 VDU_WRITES:
+	; load running frames for new direction when NEKO_RELOAD != $ff
+	ld	a,(NEKO_RELOAD)
+	cp	$ff
+	ret	z
+	; HL = SPNEKO + 1024 + direction*256 (source)
+	ld	h,a
+	ld	l,0
+	ld	de,SPNEKO+1024
+	add	hl,de
+	ex	de,hl
+	ld	hl,VRAM_SPRGEN+1024
+	ld	bc,256
+	call	LDIRVM
+	ld	a,$ff
+	ld	(NEKO_RELOAD),a
 	ret
 
 silence:
@@ -726,7 +1042,13 @@ END:	equ $
 	org RAMSTART
 
 NEKO_X:		ds 1
-NEKO_DX:	ds 1
+NEKO_Y:		ds 1
+NEKO_STATE:	ds 1
+NEKO_ANIM:	ds 1
+NEKO_ANIM_TMR:	ds 1
+NEKO_IDLE_TMR:	ds 1
+NEKO_DIR:	ds 1
+NEKO_RELOAD:	ds 1
 MOUSE_X:	ds 1
 MOUSE_Y:	ds 1
 MOUSE_ACNT:	ds 1
