@@ -227,6 +227,8 @@ MN_CHASE:
 	ld	(NEKO_STATE),a
 	ld	a,TMRAWAKE
 	ld	(NEKO_IDLE_TMR),a
+	ld	b,2
+	call	PLAY_IT
 MN_WAKING:
 	ld	hl,NEKO_IDLE_TMR
 	ld	a,(hl)
@@ -674,10 +676,17 @@ silence:
 	db 	$90		; end immediately
 	dw 	$0000
 
+wakeup:
+	db	$80,$7F,$00,$06		; A5 ~880 Hz
+	db	$80,$71,$00,$06		; B5 ~988 Hz
+	db	$90
+	dw	$0000
+
 SoundDataCount:		equ 7
 Len_SoundDataArea:	equ 10*SoundDataCount+1
 SoundAddrs:
 	dw 	silence,SoundDataArea
+	dw	wakeup,SoundDataArea+10
 	dw 	0,0
 
 SPMOUSE:
