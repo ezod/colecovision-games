@@ -5,7 +5,7 @@
 
 ; --- Neko game constants ---
 NEKO_SPEED      equ 1
-NEKO_CLOSE      equ 12
+NEKO_CLOSE      equ 25
 ANIM_RATE       equ 12
 TMRAWAKE        equ 40
 TMRSTOP         equ 45
