@@ -4,13 +4,13 @@
         include "coleco.asm"
 
 ; --- Neko game constants ---
-NEKO_SPEED      equ 2
+NEKO_SPEED      equ 1
 NEKO_CLOSE      equ 12
-ANIM_RATE       equ 6
-TMRAWAKE        equ 15
-TMRSTOP         equ 30
-TMRSCRATCH      equ 120
-TMRYAWN         equ 30
+ANIM_RATE       equ 12
+TMRAWAKE        equ 40
+TMRSTOP         equ 45
+TMRSCRATCH      equ 180
+TMRYAWN         equ 45
 
 ; Neko states
 NS_AWAKE        equ 0
