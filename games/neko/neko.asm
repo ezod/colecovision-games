@@ -364,6 +364,8 @@ MN_NO_YMOVE:
 	dec	a
 	jr	nz,MN_RUN_TMR_SAVE
 	ld	(hl),ANIM_RATE
+	ld	b,3
+	call	PLAY_IT
 	ld	hl,NEKO_ANIM
 	ld	a,(hl)
 	xor	1
@@ -682,11 +684,17 @@ wakeup:
 	db	$90
 	dw	$0000
 
+footstep:
+	db	$80,$58,$02,$02		; ~186 Hz, 2 ticks
+	db	$90
+	dw	$0000
+
 SoundDataCount:		equ 7
 Len_SoundDataArea:	equ 10*SoundDataCount+1
 SoundAddrs:
 	dw 	silence,SoundDataArea
 	dw	wakeup,SoundDataArea+10
+	dw	footstep,SoundDataArea+20
 	dw 	0,0
 
 SPMOUSE:
